@@ -1,6 +1,7 @@
 package main
 
 import (
+	"class-file-parser/classfile"
 	"flag"
 	"fmt"
 	"io"
@@ -33,4 +34,8 @@ func main() {
 		fmt.Printf("This is not a class file. Expect magic number %s, but actual is %s\n", MagicNumber, magicNumber)
 		os.Exit(0)
 	}
+
+	version := &classfile.Version{}
+	version.Parse(data[4:8])
+	fmt.Println(version)
 }
