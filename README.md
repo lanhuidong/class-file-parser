@@ -66,3 +66,5 @@ Java class文件解析器
 | CONSTANT_Module_info | name_index | u2 | 值必须是对CONSTANT_Utf8_info的有效索引，表示模块名称 |
 | CONSTANT_Package_info | tag | u1 | 值为20 |
 | CONSTANT_Package_info | name_index | u2 | 值必须是对CONSTANT_Utf8_info的有效索引，表示包名 |
+
+注：CONSTANT_Long_info和CONSTANT_Double_info在常量池中占2个长度
