@@ -28,8 +28,11 @@ func (v *Version) Parse(data []byte) {
 
 func (v *Version) String() string {
 	if v.MajorVersion == 45 {
-		return fmt.Sprintf("JDK Version 1.1, %d.%d", v.MajorVersion, v.MinorVersion)
-	} else if v.MajorVersion > 52 && v.MinorVersion == 0 {
+		return fmt.Sprintf("JDK Version 1.0.2 or 1.1, %d.%d", v.MajorVersion, v.MinorVersion)
+	} else if v.MajorVersion > 52 {
+		if v.MajorVersion >= 56 && v.MinorVersion != 0 && v.MinorVersion != 65535 {
+			return "Unknow JDK Version"
+		}
 		jdkVersion := v.MajorVersion - 44
 		if jdkVersion == 8 || jdkVersion == 11 || jdkVersion == 17 {
 			return fmt.Sprintf("JDK Version %d (LTS), %d.%d", jdkVersion, v.MajorVersion, v.MinorVersion)
