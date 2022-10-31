@@ -97,4 +97,38 @@ func main() {
 			fmt.Printf("tag %d\n", tag)
 		}
 	}
+
+	var accessFlag uint16
+	binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &accessFlag)
+	index += 2
+	flagDesc := ""
+	if accessFlag&classfile.ACC_PUBLIC != 0 {
+		flagDesc += "public "
+	}
+	if accessFlag&classfile.ACC_FINAL != 0 {
+		flagDesc += "final "
+	}
+	if accessFlag&classfile.ACC_SUPER != 0 {
+		flagDesc += "super "
+	}
+	if accessFlag&classfile.ACC_INTERFACE != 0 {
+		flagDesc += "interface "
+	}
+	if accessFlag&classfile.ACC_ABSTRACT != 0 {
+		flagDesc += "abstract "
+	}
+	if accessFlag&classfile.ACC_SYNTHETIC != 0 {
+		flagDesc += "synthetic "
+	}
+	if accessFlag&classfile.ACC_ANNOTATION != 0 {
+		flagDesc += "@ "
+	}
+	if accessFlag&classfile.ACC_ENUM != 0 {
+		flagDesc += "enum "
+	}
+	if accessFlag&classfile.ACC_MODULE != 0 {
+		flagDesc += "module "
+	}
+	fmt.Printf("access flag is %s\n", flagDesc)
+
 }
