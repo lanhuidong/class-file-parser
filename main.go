@@ -81,6 +81,12 @@ func main() {
 			index += 3
 			fmt.Printf("const #%d, tag %d, %v\n", i+1, tag, class)
 			constants = append(constants, class)
+		case 9:
+			fieldref := &classfile.Fieldref{}
+			fieldref.Parse(data[index : index+5])
+			index += 5
+			fmt.Printf("const #%d, tag %d, %v\n", i+1, tag, fieldref)
+			constants = append(constants, fieldref)
 		case 10:
 			methodRef := &classfile.Methodref{}
 			methodRef.Parse(data[index : index+5])

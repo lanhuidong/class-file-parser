@@ -61,6 +61,22 @@ func (u *Utf8) String() string {
 	return fmt.Sprintf("utf8: %s", string(u.Value))
 }
 
+type Fieldref struct {
+	Tag              uint8
+	ClassIndex       uint16
+	NameAndTypeIndex uint16
+}
+
+func (f *Fieldref) Parse(data []byte) {
+	binary.Read(bytes.NewBuffer(data[0:1]), binary.BigEndian, &f.Tag)
+	binary.Read(bytes.NewBuffer(data[1:3]), binary.BigEndian, &f.ClassIndex)
+	binary.Read(bytes.NewBuffer(data[3:5]), binary.BigEndian, &f.NameAndTypeIndex)
+}
+
+func (f *Fieldref) String() string {
+	return fmt.Sprintf("class index: %d, name and type index: %d", f.ClassIndex, f.NameAndTypeIndex)
+}
+
 type Methodref struct {
 	Tag              uint8
 	ClassIndex       uint16
