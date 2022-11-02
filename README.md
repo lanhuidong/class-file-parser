@@ -52,7 +52,7 @@ Java class文件解析器
 | CONSTANT_NameAndType_info | index | u2 | 指向该字段或方法名称常量项的索引 |
 | CONSTANT_NameAndType_info | index | u2 | 指向该字段或方法描述符常量项的索引 |
 | CONSTANT_MethodHandle_info | tag | u1 | 值为15 |
-| CONSTANT_MethodHandle_info | reference_kind | u2 | 取值区间[1, 9]，它决定了方法句柄的类型。方法句柄类型值表示方法句柄的字节码行为 |
+| CONSTANT_MethodHandle_info | reference_kind | u1 | 取值区间[1, 9]，它决定了方法句柄的类型。方法句柄类型值表示方法句柄的字节码行为 |
 | CONSTANT_MethodHandle_info | reference_index | u2 | 值必须是对常量池的有效索引 |
 | CONSTANT_MethodType_info | tag | u1 | 值为16 |
 | CONSTANT_MethodType_info | descriptor_index | u2 | 值必须是对CONSTANT_Utf8_info的有效索引，表示方法的描述符 |

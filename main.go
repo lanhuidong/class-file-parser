@@ -81,6 +81,12 @@ func main() {
 			index += 3
 			fmt.Printf("const #%d, tag %d, %v\n", i+1, tag, class)
 			constants = append(constants, class)
+		case 8:
+			jstring := &classfile.JString{}
+			jstring.Parse(data[index : index+3])
+			index += 3
+			fmt.Printf("const #%d, tag %d, %v\n", i+1, tag, jstring)
+			constants = append(constants, jstring)
 		case 9:
 			fieldref := &classfile.Fieldref{}
 			fieldref.Parse(data[index : index+5])
@@ -99,8 +105,21 @@ func main() {
 			index += 5
 			fmt.Printf("const #%d, tag %d, %v\n", i+1, tag, NameAndType)
 			constants = append(constants, NameAndType)
+		case 15:
+			methodHandle := &classfile.MethodHandle{}
+			methodHandle.Parse(data[index : index+4])
+			index += 4
+			fmt.Printf("const #%d, tag %d, %v\n", i+1, tag, methodHandle)
+			constants = append(constants, methodHandle)
+		case 18:
+			invokeDynamic := &classfile.InvokeDynamic{}
+			invokeDynamic.Parse(data[index : index+5])
+			index += 5
+			fmt.Printf("const #%d, tag %d, %v\n", i+1, tag, invokeDynamic)
+			constants = append(constants, invokeDynamic)
 		default:
 			fmt.Printf("tag %d\n", tag)
+			return
 		}
 	}
 
