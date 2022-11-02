@@ -137,4 +137,25 @@ func main() {
 	}
 	fmt.Printf("access flag is %s\n", flagDesc)
 
+	var thisClass uint16
+	binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &thisClass)
+	index += 2
+	fmt.Printf("this_class is %d\n", thisClass)
+
+	var superClass uint16
+	binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &superClass)
+	index += 2
+	fmt.Printf("super_class is %d\n", superClass)
+
+	var interfaceCount uint16
+	binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &interfaceCount)
+	index += 2
+	fmt.Printf("this class implement is %d interfaces\n", interfaceCount)
+	for i := 0; i < int(interfaceCount); i++ {
+		var interfaceIndex uint16
+		binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &interfaceIndex)
+		index += 2
+		fmt.Printf("interface #%d is at %d\n", i+1, interfaceIndex)
+	}
+
 }
