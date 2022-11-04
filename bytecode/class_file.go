@@ -1,4 +1,4 @@
-package classfile
+package bytecode
 
 import (
 	"bytes"
@@ -6,15 +6,48 @@ import (
 	"fmt"
 )
 
-const ACC_PUBLIC = 0x0001
-const ACC_FINAL = 0x0010
-const ACC_SUPER = 0x0020
-const ACC_INTERFACE = 0x0200
-const ACC_ABSTRACT = 0x0400
-const ACC_SYNTHETIC = 0x1000
-const ACC_ANNOTATION = 0x2000
-const ACC_ENUM = 0x4000
-const ACC_MODULE = 0x8000
+const MagicNumber = "CAFEBABE"
+
+type ClassFile struct {
+	Magic             uint32
+	MinorVersion      uint16
+	MajorVersion      uint16
+	ConstantPoolCount uint16
+	ConstantPool      []ConstantPoolInfo
+	AccessFlags       uint16
+	ThisClass         uint16
+	SuperClass        uint16
+	InterfacesCount   uint16
+	Interfaces        uint16
+	FieldsCount       uint16
+	Fields            []FieldInfo
+	MethodsCount      uint16
+	Methods           []MethodInfo
+	AttributesCount   uint16
+	Attributes        []AttributeInfo
+}
+
+func (f *ClassFile) Parser(data []byte) {
+	index := 0
+	binary.Read(bytes.NewBuffer(data[index:index+4]), binary.BigEndian, &f.Magic)
+	magicNumber := fmt.Sprintf("%X%X%X%X", data[0], data[1], data[2], data[3])
+	if magicNumber != MagicNumber {
+		fmt.Printf("Invalid class file. Expect magic number %s, but actual is %s\n", MagicNumber, magicNumber)
+		return
+	}
+}
+
+func (f *ClassFile) String() {
+}
+
+type FieldInfo struct {
+}
+
+type MethodInfo struct {
+}
+
+type AttributeInfo struct {
+}
 
 type Version struct {
 	MajorVersion uint16

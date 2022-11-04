@@ -2,7 +2,7 @@ package main
 
 import (
 	"bytes"
-	"class-file-parser/classfile"
+	"class-file-parser/bytecode"
 	"encoding/binary"
 	"flag"
 	"fmt"
@@ -31,15 +31,12 @@ func main() {
 
 	fmt.Printf("%s: %dbytes\n", classFileName, len(data))
 
-	index := 0
-	var magicNumber = fmt.Sprintf("%X%X%X%X", data[0], data[1], data[2], data[3])
-	if magicNumber != MagicNumber {
-		fmt.Printf("This is not a class file. Expect magic number %s, but actual is %s\n", MagicNumber, magicNumber)
-		os.Exit(0)
-	}
+	cf := bytecode.ClassFile{}
+	cf.Parser(data)
+	fmt.Println(cf)
 
-	index += 4
-	version := &classfile.Version{}
+	index := 4
+	version := &bytecode.Version{}
 	version.Parse(data[index : index+4])
 	index += 4
 	fmt.Println(version)
@@ -55,7 +52,7 @@ func main() {
 		binary.Read(bytes.NewBuffer(data[index:index+1]), binary.BigEndian, &tag)
 		switch tag {
 		case 1:
-			utf8 := &classfile.Utf8{}
+			utf8 := &bytecode.Utf8{}
 			utf8.Parse(data[index : index+3])
 			index += 3
 			utf8.Value = data[index : index+int(utf8.Length)]
@@ -63,56 +60,56 @@ func main() {
 			fmt.Printf("const #%d, tag %d, %v\n", i+1, tag, utf8)
 			constants = append(constants, utf8)
 		case 3:
-			integer := &classfile.Integer{}
+			integer := &bytecode.Integer{}
 			integer.Parse(data[index : index+3])
 			index += 5
 			fmt.Printf("const #%d, tag %d, %v\n", i+1, tag, integer)
 			constants = append(constants, integer)
 		case 5:
-			long := &classfile.Long{}
+			long := &bytecode.Long{}
 			long.Parse(data[index : index+5])
 			index += 9
 			fmt.Printf("const #%d, tag %d, %v\n", i+1, tag, long)
 			constants = append(constants, long)
 			i++
 		case 7:
-			class := &classfile.Class{}
+			class := &bytecode.Class{}
 			class.Parse(data[index : index+3])
 			index += 3
 			fmt.Printf("const #%d, tag %d, %v\n", i+1, tag, class)
 			constants = append(constants, class)
 		case 8:
-			jstring := &classfile.JString{}
+			jstring := &bytecode.JString{}
 			jstring.Parse(data[index : index+3])
 			index += 3
 			fmt.Printf("const #%d, tag %d, %v\n", i+1, tag, jstring)
 			constants = append(constants, jstring)
 		case 9:
-			fieldref := &classfile.Fieldref{}
+			fieldref := &bytecode.Fieldref{}
 			fieldref.Parse(data[index : index+5])
 			index += 5
 			fmt.Printf("const #%d, tag %d, %v\n", i+1, tag, fieldref)
 			constants = append(constants, fieldref)
 		case 10:
-			methodRef := &classfile.Methodref{}
+			methodRef := &bytecode.Methodref{}
 			methodRef.Parse(data[index : index+5])
 			index += 5
 			fmt.Printf("const #%d, tag %d, %v\n", i+1, tag, methodRef)
 			constants = append(constants, methodRef)
 		case 12:
-			NameAndType := &classfile.NameAndType{}
+			NameAndType := &bytecode.NameAndType{}
 			NameAndType.Parse(data[index : index+5])
 			index += 5
 			fmt.Printf("const #%d, tag %d, %v\n", i+1, tag, NameAndType)
 			constants = append(constants, NameAndType)
 		case 15:
-			methodHandle := &classfile.MethodHandle{}
+			methodHandle := &bytecode.MethodHandle{}
 			methodHandle.Parse(data[index : index+4])
 			index += 4
 			fmt.Printf("const #%d, tag %d, %v\n", i+1, tag, methodHandle)
 			constants = append(constants, methodHandle)
 		case 18:
-			invokeDynamic := &classfile.InvokeDynamic{}
+			invokeDynamic := &bytecode.InvokeDynamic{}
 			invokeDynamic.Parse(data[index : index+5])
 			index += 5
 			fmt.Printf("const #%d, tag %d, %v\n", i+1, tag, invokeDynamic)
@@ -127,31 +124,31 @@ func main() {
 	binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &accessFlag)
 	index += 2
 	flagDesc := ""
-	if accessFlag&classfile.ACC_PUBLIC != 0 {
+	if accessFlag&bytecode.ACC_PUBLIC != 0 {
 		flagDesc += "public "
 	}
-	if accessFlag&classfile.ACC_FINAL != 0 {
+	if accessFlag&bytecode.ACC_FINAL != 0 {
 		flagDesc += "final "
 	}
-	if accessFlag&classfile.ACC_SUPER != 0 {
+	if accessFlag&bytecode.ACC_SUPER != 0 {
 		flagDesc += "super "
 	}
-	if accessFlag&classfile.ACC_INTERFACE != 0 {
+	if accessFlag&bytecode.ACC_INTERFACE != 0 {
 		flagDesc += "interface "
 	}
-	if accessFlag&classfile.ACC_ABSTRACT != 0 {
+	if accessFlag&bytecode.ACC_ABSTRACT != 0 {
 		flagDesc += "abstract "
 	}
-	if accessFlag&classfile.ACC_SYNTHETIC != 0 {
+	if accessFlag&bytecode.ACC_SYNTHETIC != 0 {
 		flagDesc += "synthetic "
 	}
-	if accessFlag&classfile.ACC_ANNOTATION != 0 {
+	if accessFlag&bytecode.ACC_ANNOTATION != 0 {
 		flagDesc += "@ "
 	}
-	if accessFlag&classfile.ACC_ENUM != 0 {
+	if accessFlag&bytecode.ACC_ENUM != 0 {
 		flagDesc += "enum "
 	}
-	if accessFlag&classfile.ACC_MODULE != 0 {
+	if accessFlag&bytecode.ACC_MODULE != 0 {
 		flagDesc += "module "
 	}
 	fmt.Printf("access flag is %s\n", flagDesc)
