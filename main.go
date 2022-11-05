@@ -1,9 +1,7 @@
 package main
 
 import (
-	"bytes"
 	"class-file-parser/bytecode"
-	"encoding/binary"
 	"flag"
 	"fmt"
 	"io"
@@ -31,95 +29,11 @@ func main() {
 
 	fmt.Printf("%s: %dbytes\n", classFileName, len(data))
 
-	cf := bytecode.ClassFile{}
+	cf := &bytecode.ClassFile{}
 	cf.Parser(data)
 	fmt.Println(cf)
 
-	index := 4
-	version := &bytecode.Version{}
-	version.Parse(data[index : index+4])
-	index += 4
-	fmt.Println(version)
-
-	var constantCount uint16
-	binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &constantCount)
-	index += 2
-	fmt.Printf("constant count is %d\n", constantCount)
-
-	var tag uint8
-	var constants []interface{}
-	for i := 0; i < int(constantCount)-1; i++ {
-		binary.Read(bytes.NewBuffer(data[index:index+1]), binary.BigEndian, &tag)
-		switch tag {
-		case 1:
-			utf8 := &bytecode.Utf8{}
-			utf8.Parse(data[index : index+3])
-			index += 3
-			utf8.Value = data[index : index+int(utf8.Length)]
-			index += int(utf8.Length)
-			fmt.Printf("const #%d, tag %d, %v\n", i+1, tag, utf8)
-			constants = append(constants, utf8)
-		case 3:
-			integer := &bytecode.Integer{}
-			integer.Parse(data[index : index+3])
-			index += 5
-			fmt.Printf("const #%d, tag %d, %v\n", i+1, tag, integer)
-			constants = append(constants, integer)
-		case 5:
-			long := &bytecode.Long{}
-			long.Parse(data[index : index+5])
-			index += 9
-			fmt.Printf("const #%d, tag %d, %v\n", i+1, tag, long)
-			constants = append(constants, long)
-			i++
-		case 7:
-			class := &bytecode.Class{}
-			class.Parse(data[index : index+3])
-			index += 3
-			fmt.Printf("const #%d, tag %d, %v\n", i+1, tag, class)
-			constants = append(constants, class)
-		case 8:
-			jstring := &bytecode.JString{}
-			jstring.Parse(data[index : index+3])
-			index += 3
-			fmt.Printf("const #%d, tag %d, %v\n", i+1, tag, jstring)
-			constants = append(constants, jstring)
-		case 9:
-			fieldref := &bytecode.Fieldref{}
-			fieldref.Parse(data[index : index+5])
-			index += 5
-			fmt.Printf("const #%d, tag %d, %v\n", i+1, tag, fieldref)
-			constants = append(constants, fieldref)
-		case 10:
-			methodRef := &bytecode.Methodref{}
-			methodRef.Parse(data[index : index+5])
-			index += 5
-			fmt.Printf("const #%d, tag %d, %v\n", i+1, tag, methodRef)
-			constants = append(constants, methodRef)
-		case 12:
-			NameAndType := &bytecode.NameAndType{}
-			NameAndType.Parse(data[index : index+5])
-			index += 5
-			fmt.Printf("const #%d, tag %d, %v\n", i+1, tag, NameAndType)
-			constants = append(constants, NameAndType)
-		case 15:
-			methodHandle := &bytecode.MethodHandle{}
-			methodHandle.Parse(data[index : index+4])
-			index += 4
-			fmt.Printf("const #%d, tag %d, %v\n", i+1, tag, methodHandle)
-			constants = append(constants, methodHandle)
-		case 18:
-			invokeDynamic := &bytecode.InvokeDynamic{}
-			invokeDynamic.Parse(data[index : index+5])
-			index += 5
-			fmt.Printf("const #%d, tag %d, %v\n", i+1, tag, invokeDynamic)
-			constants = append(constants, invokeDynamic)
-		default:
-			fmt.Printf("tag %d\n", tag)
-			return
-		}
-	}
-
+	/*index := 10
 	var accessFlag uint16
 	binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &accessFlag)
 	index += 2
@@ -172,6 +86,6 @@ func main() {
 		binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &interfaceIndex)
 		index += 2
 		fmt.Printf("interface #%d is at %d\n", i+1, interfaceIndex)
-	}
+	}*/
 
 }
