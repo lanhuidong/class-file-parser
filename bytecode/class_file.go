@@ -28,7 +28,7 @@ type ClassFile struct {
 	ThisClass         uint16
 	SuperClass        uint16
 	InterfacesCount   uint16
-	Interfaces        uint16
+	Interfaces        []uint16
 	FieldsCount       uint16
 	Fields            []FieldInfo
 	MethodsCount      uint16
@@ -113,6 +113,21 @@ func (f *ClassFile) Parser(data []byte) {
 	binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &f.AccessFlags)
 	index += 2
 
+	binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &f.ThisClass)
+	index += 2
+
+	binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &f.SuperClass)
+	index += 2
+
+	binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &f.InterfacesCount)
+	index += 2
+
+	f.Interfaces = make([]uint16, f.InterfacesCount)
+	for i := 0; i < int(f.InterfacesCount); i++ {
+		binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &f.Interfaces[i])
+		index += 2
+	}
+
 }
 
 func (f *ClassFile) String() string {
@@ -154,7 +169,36 @@ func (f *ClassFile) String() string {
 
 	result += "\n"
 
+	thisClassName := f.getClassName(f.ThisClass)
+	result += thisClassName
+
+	superClassName := f.getClassName(f.SuperClass)
+	result += " extends " + superClassName
+
+	for i := 0; i < int(f.InterfacesCount); i++ {
+		interfaceName := f.getClassName(f.Interfaces[i])
+		if i == 0 {
+			result += " implements " + interfaceName
+		} else {
+			result += ", " + interfaceName
+		}
+	}
+	result += "\n"
+
 	return result
+}
+
+func (f *ClassFile) getClassName(index uint16) (className string) {
+	item := f.ConstantPool[index]
+	constClazz, ok := item.(*ConstantClass)
+	if ok {
+		item = f.ConstantPool[constClazz.NameIndex]
+		constUtf8, ok := item.(*ConstantUtf8)
+		if ok {
+			className = string(constUtf8.Value)
+		}
+	}
+	return className
 }
 
 func (f *ClassFile) Version() string {
