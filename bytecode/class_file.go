@@ -8,6 +8,16 @@ import (
 
 const MagicNumber = "CAFEBABE"
 
+const ACC_PUBLIC = 0x0001
+const ACC_FINAL = 0x0010
+const ACC_SUPER = 0x0020
+const ACC_INTERFACE = 0x0200
+const ACC_ABSTRACT = 0x0400
+const ACC_SYNTHETIC = 0x1000
+const ACC_ANNOTATION = 0x2000
+const ACC_ENUM = 0x4000
+const ACC_MODULE = 0x8000
+
 type ClassFile struct {
 	Magic             uint32
 	MinorVersion      uint16
@@ -100,6 +110,9 @@ func (f *ClassFile) Parser(data []byte) {
 		}
 	}
 
+	binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &f.AccessFlags)
+	index += 2
+
 }
 
 func (f *ClassFile) String() string {
@@ -110,6 +123,37 @@ func (f *ClassFile) String() string {
 			result += fmt.Sprintf("const #%d = %s\n", i, item)
 		}
 	}
+
+	if f.AccessFlags&ACC_PUBLIC != 0 {
+		result += "public "
+	}
+	if f.AccessFlags&ACC_FINAL != 0 {
+		result += "final "
+	}
+	if f.AccessFlags&ACC_SUPER != 0 {
+		result += "super "
+	}
+	if f.AccessFlags&ACC_INTERFACE != 0 {
+		result += "interface "
+	}
+	if f.AccessFlags&ACC_ABSTRACT != 0 {
+		result += "abstract "
+	}
+	if f.AccessFlags&ACC_SYNTHETIC != 0 {
+		result += "synthetic "
+	}
+	if f.AccessFlags&ACC_ANNOTATION != 0 {
+		result += "@ "
+	}
+	if f.AccessFlags&ACC_ENUM != 0 {
+		result += "enum "
+	}
+	if f.AccessFlags&ACC_MODULE != 0 {
+		result += "module "
+	}
+
+	result += "\n"
+
 	return result
 }
 
