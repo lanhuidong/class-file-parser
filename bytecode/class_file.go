@@ -128,6 +128,16 @@ func (f *ClassFile) Parser(data []byte) {
 		index += 2
 	}
 
+	binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &f.FieldsCount)
+	index += 2
+
+	f.Fields = make([]FieldInfo, 0)
+	for i := 0; i < int(f.FieldsCount); i++ {
+		field := &FieldInfo{}
+		index += field.Parse(data, index)
+		f.Fields = append(f.Fields, *field)
+	}
+
 }
 
 func (f *ClassFile) String() string {
@@ -184,6 +194,10 @@ func (f *ClassFile) String() string {
 		}
 	}
 	result += "\n"
+	result += fmt.Sprintf("字段个数: %d\n", f.FieldsCount)
+	for _, field := range f.Fields {
+		result += field.String(f.ConstantPool) + "\n"
+	}
 
 	return result
 }
@@ -219,13 +233,4 @@ func (f *ClassFile) Version() string {
 		return fmt.Sprintf("JDK Version 1.%d (LTS), %d.%d", jdkVersion, f.MajorVersion, f.MinorVersion)
 	}
 	return "Unknow JDK Version"
-}
-
-type FieldInfo struct {
-}
-
-type MethodInfo struct {
-}
-
-type AttributeInfo struct {
 }
