@@ -17,3 +17,9 @@ func (a *AttributeInfo) Parse(data []byte, index int) int {
 	a.Info = data[index+6 : index+6+int(a.Length)]
 	return 6 + int(a.Length)
 }
+
+func (a *AttributeInfo) String(constantPool []ConstantPoolInfo) string {
+	result := ""
+	result += constantPool[a.NameIndex].String()
+	return result
+}

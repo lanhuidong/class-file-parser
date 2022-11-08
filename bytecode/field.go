@@ -30,14 +30,13 @@ func (f *FieldInfo) Parse(data []byte, index int) int {
 	binary.Read(bytes.NewBuffer(data[index+6:index+8]), binary.BigEndian, &f.Attributes_count)
 
 	index += 8
-	indexInc := 8
 	f.Attributes = make([]AttributeInfo, f.Attributes_count)
 	for i := 0; i < int(f.Attributes_count); i++ {
 		attr := &AttributeInfo{}
-		indexInc += attr.Parse(data, index)
+		index += attr.Parse(data, index)
 		f.Attributes = append(f.Attributes, *attr)
 	}
-	return indexInc
+	return index
 }
 
 func (f *FieldInfo) String(constantPool []ConstantPoolInfo) string {

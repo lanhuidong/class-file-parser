@@ -134,8 +134,27 @@ func (f *ClassFile) Parser(data []byte) {
 	f.Fields = make([]FieldInfo, 0)
 	for i := 0; i < int(f.FieldsCount); i++ {
 		field := &FieldInfo{}
-		index += field.Parse(data, index)
+		index = field.Parse(data, index)
 		f.Fields = append(f.Fields, *field)
+	}
+
+	binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &f.MethodsCount)
+	index += 2
+
+	f.Methods = make([]MethodInfo, 0)
+	for i := 0; i < int(f.MethodsCount); i++ {
+		method := &MethodInfo{}
+		index = method.Parse(data, index)
+		f.Methods = append(f.Methods, *method)
+	}
+
+	binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &f.AttributesCount)
+	index += 2
+
+	for i := 0; i < int(f.AttributesCount); i++ {
+		attr := &AttributeInfo{}
+		index += attr.Parse(data, index)
+		f.Attributes = append(f.Attributes, *attr)
 	}
 
 }
@@ -199,6 +218,17 @@ func (f *ClassFile) String() string {
 		result += field.String(f.ConstantPool) + "\n"
 	}
 
+	result += "\n"
+	result += fmt.Sprintf("方法个数: %d\n", f.MethodsCount)
+	for _, method := range f.Methods {
+		result += method.String(f.ConstantPool) + "\n"
+	}
+
+	result += "\n"
+	result += fmt.Sprintf("属性个数: %d\n", f.AttributesCount)
+	for _, attr := range f.Attributes {
+		result += attr.String(f.ConstantPool) + "\n"
+	}
 	return result
 }
 
