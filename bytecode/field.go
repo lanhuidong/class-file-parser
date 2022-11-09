@@ -60,6 +60,6 @@ func (f *FieldInfo) String(constantPool []ConstantPoolInfo) string {
 	if Field_ACC_TRANSIENT&f.AccessFlags != 0 {
 		result += "transient "
 	}
-	result += constantPool[f.DescriptorIndex].String() + " " + constantPool[f.NameIndex].String()
+	result += constantPool[f.DescriptorIndex].String(constantPool) + " " + constantPool[f.NameIndex].String(constantPool)
 	return result
 }

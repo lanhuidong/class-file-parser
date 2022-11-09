@@ -164,7 +164,7 @@ func (f *ClassFile) String() string {
 	result += fmt.Sprintf("constant number: %d\n", f.ConstantPoolCount)
 	for i, item := range f.ConstantPool {
 		if item != nil {
-			result += fmt.Sprintf("const #%d = %s\n", i, item)
+			result += fmt.Sprintf("const #%d = %s	%s\n", i, item.TagName(), item.String(f.ConstantPool))
 		}
 	}
 

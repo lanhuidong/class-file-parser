@@ -13,7 +13,7 @@ type ConstantPoolInfo interface {
 
 	Parse(data []byte, index int) int
 
-	String() string
+	String(constantPool []ConstantPoolInfo) string
 }
 
 type ConstantUtf8 struct {
@@ -30,8 +30,8 @@ func (c *ConstantUtf8) TagName() string {
 	return "Utf8"
 }
 
-func (c *ConstantUtf8) String() string {
-	return c.TagName() + "	" + string(c.Value)
+func (c *ConstantUtf8) String(constantPool []ConstantPoolInfo) string {
+	return string(c.Value)
 }
 
 func (c *ConstantUtf8) Parse(data []byte, index int) int {
@@ -54,8 +54,8 @@ func (c *ConstantInteger) TagName() string {
 	return "Integer"
 }
 
-func (c *ConstantInteger) String() string {
-	return c.TagName() + "	" + fmt.Sprintf("%d", c.Value)
+func (c *ConstantInteger) String(constantPool []ConstantPoolInfo) string {
+	return fmt.Sprintf("%d", c.Value)
 }
 
 func (c *ConstantInteger) Parse(data []byte, index int) int {
@@ -77,8 +77,8 @@ func (c *ConstantFloat) TagName() string {
 	return "Float"
 }
 
-func (c *ConstantFloat) String() string {
-	return c.TagName() + "	" + fmt.Sprintf("%f", c.Value)
+func (c *ConstantFloat) String(constantPool []ConstantPoolInfo) string {
+	return fmt.Sprintf("%f", c.Value)
 }
 
 func (c *ConstantFloat) Parse(data []byte, index int) int {
@@ -100,8 +100,8 @@ func (c *ConstantLong) TagName() string {
 	return "Long"
 }
 
-func (c *ConstantLong) String() string {
-	return c.TagName() + "	" + fmt.Sprintf("%d", c.Value)
+func (c *ConstantLong) String(constantPool []ConstantPoolInfo) string {
+	return fmt.Sprintf("%d", c.Value)
 }
 
 func (c *ConstantLong) Parse(data []byte, index int) int {
@@ -123,8 +123,8 @@ func (c *ConstantDouble) TagName() string {
 	return "Double"
 }
 
-func (c *ConstantDouble) String() string {
-	return c.TagName() + "	" + fmt.Sprintf("%f", c.Value)
+func (c *ConstantDouble) String(constantPool []ConstantPoolInfo) string {
+	return fmt.Sprintf("%f", c.Value)
 }
 
 func (c *ConstantDouble) Parse(data []byte, index int) int {
@@ -146,8 +146,8 @@ func (c *ConstantClass) TagName() string {
 	return "Class"
 }
 
-func (c *ConstantClass) String() string {
-	return c.TagName() + "	" + fmt.Sprintf("#%d", c.NameIndex)
+func (c *ConstantClass) String(constantPool []ConstantPoolInfo) string {
+	return fmt.Sprintf("#%d", c.NameIndex) + "	//" + constantPool[c.NameIndex].String(constantPool)
 }
 
 func (c *ConstantClass) Parse(data []byte, index int) int {
@@ -169,8 +169,8 @@ func (c *ConstantString) TagName() string {
 	return "String"
 }
 
-func (c *ConstantString) String() string {
-	return c.TagName() + "	" + fmt.Sprintf("#%d", c.StringIndex)
+func (c *ConstantString) String(constantPool []ConstantPoolInfo) string {
+	return fmt.Sprintf("#%d", c.StringIndex) + "	//" + constantPool[c.StringIndex].String(constantPool)
 }
 
 func (c *ConstantString) Parse(data []byte, index int) int {
@@ -193,8 +193,8 @@ func (c *ConstantFieldref) TagName() string {
 	return "Fieldref"
 }
 
-func (c *ConstantFieldref) String() string {
-	return c.TagName() + "	" + fmt.Sprintf("#%d.#%d", c.ClassIndex, c.NameAndTypeIndex)
+func (c *ConstantFieldref) String(constantPool []ConstantPoolInfo) string {
+	return fmt.Sprintf("#%d.#%d", c.ClassIndex, c.NameAndTypeIndex) + "	//" + constantPool[c.ClassIndex].String(constantPool) + "." + constantPool[c.NameAndTypeIndex].String(constantPool)
 }
 
 func (c *ConstantFieldref) Parse(data []byte, index int) int {
@@ -218,8 +218,8 @@ func (c *ConstantMethodref) TagName() string {
 	return "Methodref"
 }
 
-func (c *ConstantMethodref) String() string {
-	return c.TagName() + "	" + fmt.Sprintf("#%d.#%d", c.ClassIndex, c.NameAndTypeIndex)
+func (c *ConstantMethodref) String(constantPool []ConstantPoolInfo) string {
+	return fmt.Sprintf("#%d.#%d", c.ClassIndex, c.NameAndTypeIndex) + "	//" + constantPool[c.ClassIndex].String(constantPool) + "." + constantPool[c.NameAndTypeIndex].String(constantPool)
 }
 
 func (c *ConstantMethodref) Parse(data []byte, index int) int {
@@ -243,8 +243,8 @@ func (c *ConstantInterfaceMethodref) TagName() string {
 	return "InterfaceMethodref"
 }
 
-func (c *ConstantInterfaceMethodref) String() string {
-	return c.TagName() + "	" + fmt.Sprintf("#%d.#%d", c.ClassIndex, c.NameAndTypeIndex)
+func (c *ConstantInterfaceMethodref) String(constantPool []ConstantPoolInfo) string {
+	return fmt.Sprintf("#%d.#%d", c.ClassIndex, c.NameAndTypeIndex) + "	//" + constantPool[c.ClassIndex].String(constantPool) + "." + constantPool[c.NameAndTypeIndex].String(constantPool)
 }
 
 func (c *ConstantInterfaceMethodref) Parse(data []byte, index int) int {
@@ -268,8 +268,8 @@ func (c *ConstantNameAndType) TagName() string {
 	return "NameAndType"
 }
 
-func (c *ConstantNameAndType) String() string {
-	return c.TagName() + "	" + fmt.Sprintf("#%d.#%d", c.NameIndex, c.DescriptorIndex)
+func (c *ConstantNameAndType) String(constantPool []ConstantPoolInfo) string {
+	return fmt.Sprintf("#%d.#%d", c.NameIndex, c.DescriptorIndex) + "	//" + constantPool[c.NameIndex].String(constantPool) + "." + constantPool[c.DescriptorIndex].String(constantPool)
 }
 
 func (c *ConstantNameAndType) Parse(data []byte, index int) int {
@@ -293,7 +293,7 @@ func (c *ConstantMethodHandle) TagName() string {
 	return "MethodHandle"
 }
 
-func (c *ConstantMethodHandle) String() string {
+func (c *ConstantMethodHandle) String(constantPool []ConstantPoolInfo) string {
 	return c.TagName() + "	" + fmt.Sprintf("kind: %d.#%d", c.ReferenceKind, c.ReferenceKind)
 }
 
@@ -317,7 +317,7 @@ func (c *ConstantMethodType) TagName() string {
 	return "MethodType"
 }
 
-func (c *ConstantMethodType) String() string {
+func (c *ConstantMethodType) String(constantPool []ConstantPoolInfo) string {
 	return c.TagName() + "	" + fmt.Sprintf("#%d", c.DescriptorIndex)
 }
 
@@ -341,7 +341,7 @@ func (c *ConstantDynamic) TagName() string {
 	return "Dynamic"
 }
 
-func (c *ConstantDynamic) String() string {
+func (c *ConstantDynamic) String(constantPool []ConstantPoolInfo) string {
 	return c.TagName() + "	" + fmt.Sprintf("#%d.#%d", c.BootstrapMethodAttrIndex, c.NameAndTypeIndex)
 }
 
@@ -366,7 +366,7 @@ func (c *ConstantInvokeDynamic) TagName() string {
 	return "InvokeDynamic"
 }
 
-func (c *ConstantInvokeDynamic) String() string {
+func (c *ConstantInvokeDynamic) String(constantPool []ConstantPoolInfo) string {
 	return c.TagName() + "	" + fmt.Sprintf("#%d.#%d", c.BootstrapMethodAttrIndex, c.NameAndTypeIndex)
 }
 
@@ -390,7 +390,7 @@ func (c *ConstantModule) TagName() string {
 	return "Module"
 }
 
-func (c *ConstantModule) String() string {
+func (c *ConstantModule) String(constantPool []ConstantPoolInfo) string {
 	return c.TagName() + "	" + fmt.Sprintf("#%d", c.NameIndex)
 }
 
@@ -413,7 +413,7 @@ func (c *ConstantPackage) TagName() string {
 	return "Package"
 }
 
-func (c *ConstantPackage) String() string {
+func (c *ConstantPackage) String(constantPool []ConstantPoolInfo) string {
 	return c.TagName() + "	" + fmt.Sprintf("#%d", c.NameIndex)
 }
 

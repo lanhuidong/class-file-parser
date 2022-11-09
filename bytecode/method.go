@@ -68,6 +68,6 @@ func (m *MethodInfo) String(constantPool []ConstantPoolInfo) string {
 	if METHOD_ACC_ABSTRACT&m.AccessFlags != 0 {
 		result += "abstract "
 	}
-	result += constantPool[m.DescriptorIndex].String() + " " + constantPool[m.NameIndex].String()
+	result += constantPool[m.DescriptorIndex].String(constantPool) + " " + constantPool[m.NameIndex].String(constantPool)
 	return result
 }
