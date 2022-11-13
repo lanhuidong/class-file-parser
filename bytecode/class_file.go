@@ -134,7 +134,7 @@ func (f *ClassFile) Parser(data []byte) {
 	f.Fields = make([]FieldInfo, 0)
 	for i := 0; i < int(f.FieldsCount); i++ {
 		field := &FieldInfo{}
-		index = field.Parse(data, index)
+		index = field.Parse(data, index, f.ConstantPool)
 		f.Fields = append(f.Fields, *field)
 	}
 
@@ -144,7 +144,7 @@ func (f *ClassFile) Parser(data []byte) {
 	f.Methods = make([]MethodInfo, 0)
 	for i := 0; i < int(f.MethodsCount); i++ {
 		method := &MethodInfo{}
-		index = method.Parse(data, index)
+		index = method.Parse(data, index, f.ConstantPool)
 		f.Methods = append(f.Methods, *method)
 	}
 
@@ -152,9 +152,15 @@ func (f *ClassFile) Parser(data []byte) {
 	index += 2
 
 	for i := 0; i < int(f.AttributesCount); i++ {
-		attr := &AttributeInfo{}
+		attr := &AttributeCommon{}
 		index += attr.Parse(data, index)
-		f.Attributes = append(f.Attributes, *attr)
+		var item AttributeInfo
+		switch attr.GetName(f.ConstantPool) {
+		case "SourceFile":
+			item = &SourceFile{}
+			item.Parse(attr.NameIndex, attr.Length, attr.Info)
+		}
+		f.Attributes = append(f.Attributes, item)
 	}
 
 }
@@ -227,7 +233,7 @@ func (f *ClassFile) String() string {
 	result += "\n"
 	result += fmt.Sprintf("属性个数: %d\n", f.AttributesCount)
 	for _, attr := range f.Attributes {
-		result += attr.String(f.ConstantPool) + "\n"
+		result += attr.GetName(f.ConstantPool) + ": " + attr.String(f.ConstantPool) + "\n"
 	}
 	return result
 }

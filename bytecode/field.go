@@ -23,7 +23,7 @@ type FieldInfo struct {
 	Attributes       []AttributeInfo
 }
 
-func (f *FieldInfo) Parse(data []byte, index int) int {
+func (f *FieldInfo) Parse(data []byte, index int, constantPool []ConstantPoolInfo) int {
 	binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &f.AccessFlags)
 	binary.Read(bytes.NewBuffer(data[index+2:index+4]), binary.BigEndian, &f.NameIndex)
 	binary.Read(bytes.NewBuffer(data[index+4:index+6]), binary.BigEndian, &f.DescriptorIndex)
@@ -32,9 +32,15 @@ func (f *FieldInfo) Parse(data []byte, index int) int {
 	index += 8
 	f.Attributes = make([]AttributeInfo, f.Attributes_count)
 	for i := 0; i < int(f.Attributes_count); i++ {
-		attr := &AttributeInfo{}
+		attr := &AttributeCommon{}
 		index += attr.Parse(data, index)
-		f.Attributes = append(f.Attributes, *attr)
+		var item AttributeInfo
+		switch attr.GetName(constantPool) {
+		case "SourceFile":
+			item = &SourceFile{}
+			item.Parse(attr.NameIndex, attr.Length, attr.Info)
+		}
+		f.Attributes[i] = item
 	}
 	return index
 }

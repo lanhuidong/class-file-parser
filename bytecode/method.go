@@ -26,7 +26,7 @@ type MethodInfo struct {
 	Attributes       []AttributeInfo
 }
 
-func (m *MethodInfo) Parse(data []byte, index int) int {
+func (m *MethodInfo) Parse(data []byte, index int, constantPool []ConstantPoolInfo) int {
 	binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &m.AccessFlags)
 	binary.Read(bytes.NewBuffer(data[index+2:index+4]), binary.BigEndian, &m.NameIndex)
 	binary.Read(bytes.NewBuffer(data[index+4:index+6]), binary.BigEndian, &m.DescriptorIndex)
@@ -36,10 +36,16 @@ func (m *MethodInfo) Parse(data []byte, index int) int {
 	indexInc := 8
 	m.Attributes = make([]AttributeInfo, m.Attributes_count)
 	for i := 0; i < int(m.Attributes_count); i++ {
-		attr := &AttributeInfo{}
+		attr := &AttributeCommon{}
 		indexInc = attr.Parse(data, index)
 		index += indexInc
-		m.Attributes = append(m.Attributes, *attr)
+		var item AttributeInfo
+		switch attr.GetName(constantPool) {
+		case "SourceFile":
+			item = &SourceFile{}
+			item.Parse(attr.NameIndex, attr.Length, attr.Info)
+		}
+		m.Attributes[i] = item
 	}
 	return index
 }
