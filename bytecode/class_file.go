@@ -159,6 +159,9 @@ func (f *ClassFile) Parser(data []byte) {
 		case "SourceFile":
 			item = &SourceFile{}
 			item.Parse(attr.NameIndex, attr.Length, attr.Info)
+		case "InnerClasses":
+			item = &InnerClasses{}
+			item.Parse(attr.NameIndex, attr.Length, attr.Info)
 		}
 		f.Attributes = append(f.Attributes, item)
 	}
@@ -233,7 +236,9 @@ func (f *ClassFile) String() string {
 	result += "\n"
 	result += fmt.Sprintf("属性个数: %d\n", f.AttributesCount)
 	for _, attr := range f.Attributes {
-		result += attr.GetName(f.ConstantPool) + ": " + attr.String(f.ConstantPool) + "\n"
+		if attr != nil {
+			result += attr.GetName(f.ConstantPool) + ": " + attr.String(f.ConstantPool) + "\n"
+		}
 	}
 	return result
 }
