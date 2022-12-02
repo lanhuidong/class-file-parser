@@ -31,6 +31,6 @@ func main() {
 
 	cf := &bytecode.ClassFile{}
 	cf.Parser(data)
-	fmt.Println(cf)
+	fmt.Println(cf.String())
 
 }

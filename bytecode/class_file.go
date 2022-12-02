@@ -57,6 +57,7 @@ func (f *ClassFile) Parser(data []byte) {
 	index += 2
 
 	f.ConstantPool = make([]ConstantPoolInfo, f.ConstantPoolCount)
+	f.ConstantPool[0] = &ConstantPlaceHolder{}
 	//常量池从1开始计数，long和double占2个位置
 	for i := 1; i < int(f.ConstantPoolCount); i++ {
 		var tag uint8
@@ -162,10 +163,20 @@ func (f *ClassFile) Parser(data []byte) {
 		case "InnerClasses":
 			item = &InnerClasses{}
 			item.Parse(attr.NameIndex, attr.Length, attr.Info)
+		case "EnclosingMethod":
+			item = &EnclosingMethod{}
+			item.Parse(attr.NameIndex, attr.Length, attr.Info)
+		case "BootstrapMethods":
+			item = &BootstrapMethods{}
+			item.Parse(attr.NameIndex, attr.Length, attr.Info)
+		case "NestMembers":
+			item = &NestMembers{}
+			item.Parse(attr.NameIndex, attr.Length, attr.Info)
+		default:
+			fmt.Printf("attribue name is %s\n", f.ConstantPool[attr.NameIndex].String(f.ConstantPool))
 		}
 		f.Attributes = append(f.Attributes, item)
 	}
-
 }
 
 func (f *ClassFile) String() string {

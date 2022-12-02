@@ -16,6 +16,25 @@ type ConstantPoolInfo interface {
 	String(constantPool []ConstantPoolInfo) string
 }
 
+type ConstantPlaceHolder struct {
+}
+
+func (c *ConstantPlaceHolder) TagValue() uint8 {
+	return 0
+}
+
+func (c *ConstantPlaceHolder) TagName() string {
+	return ""
+}
+
+func (c *ConstantPlaceHolder) String(constantPool []ConstantPoolInfo) string {
+	return ""
+}
+
+func (c *ConstantPlaceHolder) Parse(data []byte, index int) int {
+	return 0
+}
+
 type ConstantUtf8 struct {
 	Tag    uint8
 	Length uint16
