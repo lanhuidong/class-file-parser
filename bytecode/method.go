@@ -48,6 +48,9 @@ func (m *MethodInfo) Parse(data []byte, index int, constantPool []ConstantPoolIn
 		case "EnclosingMethod":
 			item = &EnclosingMethod{}
 			item.Parse(attr.NameIndex, attr.Length, attr.Info)
+		case "SourceDebugExtension":
+			item = &SourceDebugExtension{}
+			item.Parse(attr.NameIndex, attr.Length, attr.Info)
 		default:
 			fmt.Printf("method attr %s \n", attr.GetName(constantPool))
 		}

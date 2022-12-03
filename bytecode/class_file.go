@@ -166,6 +166,9 @@ func (f *ClassFile) Parser(data []byte) {
 		case "EnclosingMethod":
 			item = &EnclosingMethod{}
 			item.Parse(attr.NameIndex, attr.Length, attr.Info)
+		case "SourceDebugExtension":
+			item = &SourceDebugExtension{}
+			item.Parse(attr.NameIndex, attr.Length, attr.Info)
 		case "BootstrapMethods":
 			item = &BootstrapMethods{}
 			item.Parse(attr.NameIndex, attr.Length, attr.Info)

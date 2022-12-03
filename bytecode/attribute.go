@@ -152,6 +152,26 @@ func (n *NestMembers) String(constantPool []ConstantPoolInfo) string {
 	return result
 }
 
+type SourceDebugExtension struct {
+	NameIndex      uint16
+	Length         uint32
+	DebugExtension []uint8
+}
+
+func (s *SourceDebugExtension) Parse(nameIndex uint16, length uint32, data []byte) {
+	s.NameIndex = nameIndex
+	s.Length = length
+	binary.Read(bytes.NewBuffer(data[0:length]), binary.BigEndian, &s.DebugExtension)
+}
+
+func (s *SourceDebugExtension) GetName(constantPool []ConstantPoolInfo) string {
+	return constantPool[s.NameIndex].String(constantPool)
+}
+
+func (n *SourceDebugExtension) String(constantPool []ConstantPoolInfo) string {
+	return string(n.DebugExtension)
+}
+
 type BootStrapMethod struct {
 	BootstrapMethodRef uint16
 	ArgumentsNum       uint16
