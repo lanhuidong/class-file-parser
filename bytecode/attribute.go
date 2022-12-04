@@ -30,6 +30,26 @@ type AttributeInfo interface {
 	String(constantPool []ConstantPoolInfo) string
 }
 
+type ConstantValue struct {
+	NameIndex          uint16
+	Length             uint32
+	ConstantValueIndex uint16
+}
+
+func (c *ConstantValue) Parse(nameIndex uint16, length uint32, data []byte) {
+	c.NameIndex = nameIndex
+	c.Length = length
+	binary.Read(bytes.NewBuffer(data[0:length]), binary.BigEndian, &c.ConstantValueIndex)
+}
+
+func (c *ConstantValue) GetName(constantPool []ConstantPoolInfo) string {
+	return constantPool[c.NameIndex].String(constantPool)
+}
+
+func (c *ConstantValue) String(constantPool []ConstantPoolInfo) string {
+	return constantPool[c.ConstantValueIndex].String(constantPool)
+}
+
 type SourceFile struct {
 	NameIndex       uint16
 	Length          uint32

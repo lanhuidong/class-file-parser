@@ -3,6 +3,7 @@ package bytecode
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 )
 
 const Field_ACC_PUBLIC = 0x0001
@@ -16,29 +17,34 @@ const Field_ACC_SYNTHETIC = 0x1000
 const Field_ACC_ENUM = 0x4000
 
 type FieldInfo struct {
-	AccessFlags      uint16
-	NameIndex        uint16
-	DescriptorIndex  uint16
-	Attributes_count uint16
-	Attributes       []AttributeInfo
+	AccessFlags     uint16
+	NameIndex       uint16
+	DescriptorIndex uint16
+	AttributesCount uint16
+	Attributes      []AttributeInfo
 }
 
 func (f *FieldInfo) Parse(data []byte, index int, constantPool []ConstantPoolInfo) int {
 	binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &f.AccessFlags)
 	binary.Read(bytes.NewBuffer(data[index+2:index+4]), binary.BigEndian, &f.NameIndex)
 	binary.Read(bytes.NewBuffer(data[index+4:index+6]), binary.BigEndian, &f.DescriptorIndex)
-	binary.Read(bytes.NewBuffer(data[index+6:index+8]), binary.BigEndian, &f.Attributes_count)
+	binary.Read(bytes.NewBuffer(data[index+6:index+8]), binary.BigEndian, &f.AttributesCount)
 
 	index += 8
-	f.Attributes = make([]AttributeInfo, f.Attributes_count)
-	for i := 0; i < int(f.Attributes_count); i++ {
+	f.Attributes = make([]AttributeInfo, f.AttributesCount)
+	for i := 0; i < int(f.AttributesCount); i++ {
 		attr := &AttributeCommon{}
 		index += attr.Parse(data, index)
 		var item AttributeInfo
 		switch attr.GetName(constantPool) {
+		case "ConstantValue":
+			item = &ConstantValue{}
+			item.Parse(attr.NameIndex, attr.Length, attr.Info)
 		case "SourceFile":
 			item = &SourceFile{}
 			item.Parse(attr.NameIndex, attr.Length, attr.Info)
+		default:
+			fmt.Printf("field attr %s \n", attr.GetName(constantPool))
 		}
 		f.Attributes[i] = item
 	}
@@ -67,5 +73,11 @@ func (f *FieldInfo) String(constantPool []ConstantPoolInfo) string {
 		result += "transient "
 	}
 	result += constantPool[f.DescriptorIndex].String(constantPool) + " " + constantPool[f.NameIndex].String(constantPool)
+	result += fmt.Sprintf("\n属性个数: %d\n", f.AttributesCount)
+	for _, attr := range f.Attributes {
+		if attr != nil {
+			result += attr.GetName(constantPool) + ": " + attr.String(constantPool) + "\n"
+		}
+	}
 	return result
 }

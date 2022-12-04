@@ -157,6 +157,9 @@ func (f *ClassFile) Parser(data []byte) {
 		index += attr.Parse(data, index)
 		var item AttributeInfo
 		switch attr.GetName(f.ConstantPool) {
+		case "ConstantValue":
+			item = &ConstantValue{}
+			item.Parse(attr.NameIndex, attr.Length, attr.Info)
 		case "SourceFile":
 			item = &SourceFile{}
 			item.Parse(attr.NameIndex, attr.Length, attr.Info)
