@@ -54,6 +54,9 @@ func parse(data []byte, index int, constantPool []ConstantPoolInfo) (int, Attrib
 	case "LineNumberTable":
 		item = &LineNumberTable{}
 		item.parse(base, info, constantPool)
+	case "LocalVariableTypeTable":
+		item = &LocalVariableTypeTable{}
+		item.parse(base, info, constantPool)
 	case "BootstrapMethods":
 		item = &BootstrapMethods{}
 		item.parse(base, info, constantPool)
@@ -147,6 +150,7 @@ func (c *Code) String(constantPool []ConstantPoolInfo) string {
 	result := fmt.Sprintf("max stack: %d, max locals: %d\n", c.MaxStack, c.MaxLocals)
 	for _, attr := range c.Attributes {
 		if attr != nil { //TODO 等所有解析完成后这个if应该移除
+			result += attr.GetName() + "\n"
 			result += attr.String(constantPool)
 		}
 	}
@@ -323,6 +327,49 @@ func (l *LineNumberTable) String(constantPool []ConstantPoolInfo) string {
 	result := ""
 	for _, line := range l.LineNumber {
 		result += fmt.Sprintf("start pc: %d, line number: %d\n", line.StartPc, line.LineNumber)
+	}
+	return result
+}
+
+type LocalVariableType struct {
+	StartPc        uint16
+	Length         uint16
+	NameIndex      uint16
+	SignatureIndex uint16
+	Index          uint16
+}
+
+func (l *LocalVariableType) Parse(data []byte, index int) {
+	binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &l.StartPc)
+	binary.Read(bytes.NewBuffer(data[index+2:index+4]), binary.BigEndian, &l.Length)
+	binary.Read(bytes.NewBuffer(data[index+4:index+6]), binary.BigEndian, &l.NameIndex)
+	binary.Read(bytes.NewBuffer(data[index+6:index+8]), binary.BigEndian, &l.SignatureIndex)
+	binary.Read(bytes.NewBuffer(data[index+8:index+10]), binary.BigEndian, &l.Index)
+}
+
+type LocalVariableTypeTable struct {
+	AttributeBase
+	LocalVariableTypeTableLength uint16
+	LocalVariableType            []LocalVariableType
+}
+
+func (l *LocalVariableTypeTable) parse(base *AttributeBase, data []byte, constantPool []ConstantPoolInfo) {
+	l.AttributeBase = *base
+	binary.Read(bytes.NewBuffer(data[0:2]), binary.BigEndian, &l.LocalVariableTypeTableLength)
+	index := 2
+	for i := 0; i < int(l.LocalVariableTypeTableLength); i++ {
+		localVar := &LocalVariableType{}
+		localVar.Parse(data, index)
+		index += 10
+		l.LocalVariableType = append(l.LocalVariableType, *localVar)
+	}
+
+}
+
+func (l *LocalVariableTypeTable) String(constantPool []ConstantPoolInfo) string {
+	result := ""
+	for _, localVar := range l.LocalVariableType {
+		result += fmt.Sprintf("start pc: %d, length: %d, name index: %d, signature index: %d, index: %d\n", localVar.StartPc, localVar.Length, localVar.NameIndex, localVar.SignatureIndex, localVar.Index)
 	}
 	return result
 }
