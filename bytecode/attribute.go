@@ -30,6 +30,9 @@ func parse(data []byte, index int, constantPool []ConstantPoolInfo) (int, Attrib
 	case "Code":
 		item = &Code{}
 		item.parse(base, info, constantPool)
+	case "Exceptions":
+		item = &Exceptions{}
+		item.parse(base, info, constantPool)
 	case "InnerClasses":
 		item = &InnerClasses{}
 		item.parse(base, info, constantPool)
@@ -133,6 +136,32 @@ func (c *Code) parse(base *AttributeBase, data []byte, constantPool []ConstantPo
 
 func (c *Code) String(constantPool []ConstantPoolInfo) string {
 	result := fmt.Sprintf("max stack: %d, max locals: %d\n", c.MaxStack, c.MaxLocals)
+	return result
+}
+
+type Exceptions struct {
+	AttributeBase
+	NumberOfExceptions  uint16
+	ExceptionIndexTable []uint16
+}
+
+func (e *Exceptions) parse(base *AttributeBase, data []byte, constantPool []ConstantPoolInfo) {
+	e.AttributeBase = *base
+	binary.Read(bytes.NewBuffer(data[0:2]), binary.BigEndian, &e.NumberOfExceptions)
+	index := 2
+	for i := 0; i < int(e.NumberOfExceptions); i++ {
+		var exceptionIndex uint16
+		binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &exceptionIndex)
+		e.ExceptionIndexTable = append(e.ExceptionIndexTable, exceptionIndex)
+		index += 2
+	}
+}
+
+func (e *Exceptions) String(constantPool []ConstantPoolInfo) string {
+	result := ""
+	for _, index := range e.ExceptionIndexTable {
+		result += constantPool[index].String(constantPool)
+	}
 	return result
 }
 
