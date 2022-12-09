@@ -51,6 +51,9 @@ func parse(data []byte, index int, constantPool []ConstantPoolInfo) (int, Attrib
 	case "SourceDebugExtension":
 		item = &SourceDebugExtension{}
 		item.parse(base, info, constantPool)
+	case "LineNumberTable":
+		item = &LineNumberTable{}
+		item.parse(base, info, constantPool)
 	case "BootstrapMethods":
 		item = &BootstrapMethods{}
 		item.parse(base, info, constantPool)
@@ -101,10 +104,10 @@ type ExceptionTable struct {
 }
 
 func (e *ExceptionTable) Parse(data []byte, index int) {
-	binary.Read(bytes.NewBuffer(data[0:2]), binary.BigEndian, &e.StartPc)
-	binary.Read(bytes.NewBuffer(data[2:4]), binary.BigEndian, &e.EndPc)
-	binary.Read(bytes.NewBuffer(data[4:6]), binary.BigEndian, &e.HandlerPc)
-	binary.Read(bytes.NewBuffer(data[6:8]), binary.BigEndian, &e.CatchType)
+	binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &e.StartPc)
+	binary.Read(bytes.NewBuffer(data[index+2:index+4]), binary.BigEndian, &e.EndPc)
+	binary.Read(bytes.NewBuffer(data[index+4:index+6]), binary.BigEndian, &e.HandlerPc)
+	binary.Read(bytes.NewBuffer(data[index+6:index+8]), binary.BigEndian, &e.CatchType)
 }
 
 type Code struct {
@@ -142,6 +145,11 @@ func (c *Code) parse(base *AttributeBase, data []byte, constantPool []ConstantPo
 
 func (c *Code) String(constantPool []ConstantPoolInfo) string {
 	result := fmt.Sprintf("max stack: %d, max locals: %d\n", c.MaxStack, c.MaxLocals)
+	for _, attr := range c.Attributes {
+		if attr != nil { //TODO 等所有解析完成后这个if应该移除
+			result += attr.String(constantPool)
+		}
+	}
 	return result
 }
 
@@ -169,32 +177,6 @@ func (e *Exceptions) String(constantPool []ConstantPoolInfo) string {
 		result += constantPool[index].String(constantPool)
 	}
 	return result
-}
-
-type Synthetic struct {
-	AttributeBase
-}
-
-func (s *Synthetic) parse(base *AttributeBase, data []byte, constantPool []ConstantPoolInfo) {
-	s.AttributeBase = *base
-}
-
-func (s *Synthetic) String(constantPool []ConstantPoolInfo) string {
-	return "Synthetic"
-}
-
-type Signature struct {
-	AttributeBase
-	SignatureIndex uint16
-}
-
-func (s *Signature) parse(base *AttributeBase, data []byte, constantPool []ConstantPoolInfo) {
-	s.AttributeBase = *base
-	binary.Read(bytes.NewBuffer(data), binary.BigEndian, &s.SignatureIndex)
-}
-
-func (s *Signature) String(constantPool []ConstantPoolInfo) string {
-	return constantPool[s.SignatureIndex].String(constantPool)
 }
 
 type InnerClasses struct {
@@ -254,6 +236,32 @@ func (e *EnclosingMethod) String(constantPool []ConstantPoolInfo) string {
 	return constantPool[e.ClassIndex].String(constantPool) + "." + constantPool[e.MethodIndex].String(constantPool)
 }
 
+type Synthetic struct {
+	AttributeBase
+}
+
+func (s *Synthetic) parse(base *AttributeBase, data []byte, constantPool []ConstantPoolInfo) {
+	s.AttributeBase = *base
+}
+
+func (s *Synthetic) String(constantPool []ConstantPoolInfo) string {
+	return "Synthetic"
+}
+
+type Signature struct {
+	AttributeBase
+	SignatureIndex uint16
+}
+
+func (s *Signature) parse(base *AttributeBase, data []byte, constantPool []ConstantPoolInfo) {
+	s.AttributeBase = *base
+	binary.Read(bytes.NewBuffer(data), binary.BigEndian, &s.SignatureIndex)
+}
+
+func (s *Signature) String(constantPool []ConstantPoolInfo) string {
+	return constantPool[s.SignatureIndex].String(constantPool)
+}
+
 type SourceFile struct {
 	AttributeBase
 	SourceFileIndex uint16
@@ -266,6 +274,57 @@ func (s *SourceFile) parse(base *AttributeBase, data []byte, constantPool []Cons
 
 func (s *SourceFile) String(constantPool []ConstantPoolInfo) string {
 	return constantPool[s.SourceFileIndex].String(constantPool)
+}
+
+type SourceDebugExtension struct {
+	AttributeBase
+	DebugExtension []uint8
+}
+
+func (s *SourceDebugExtension) parse(base *AttributeBase, data []byte, constantPool []ConstantPoolInfo) {
+	s.AttributeBase = *base
+	binary.Read(bytes.NewBuffer(data), binary.BigEndian, &s.DebugExtension)
+}
+
+func (s *SourceDebugExtension) String(constantPool []ConstantPoolInfo) string {
+	return string(s.DebugExtension)
+}
+
+type LineNumber struct {
+	StartPc    uint16
+	LineNumber uint16
+}
+
+func (l *LineNumber) Parse(data []byte, index int) {
+	binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &l.StartPc)
+	binary.Read(bytes.NewBuffer(data[index+2:index+4]), binary.BigEndian, &l.LineNumber)
+}
+
+type LineNumberTable struct {
+	AttributeBase
+	LineNumberTableLength uint16
+	LineNumber            []LineNumber
+}
+
+func (l *LineNumberTable) parse(base *AttributeBase, data []byte, constantPool []ConstantPoolInfo) {
+	l.AttributeBase = *base
+	binary.Read(bytes.NewBuffer(data[0:2]), binary.BigEndian, &l.LineNumberTableLength)
+	index := 2
+	for i := 0; i < int(l.LineNumberTableLength); i++ {
+		line := &LineNumber{}
+		line.Parse(data, index)
+		index += 4
+		l.LineNumber = append(l.LineNumber, *line)
+	}
+
+}
+
+func (l *LineNumberTable) String(constantPool []ConstantPoolInfo) string {
+	result := ""
+	for _, line := range l.LineNumber {
+		result += fmt.Sprintf("start pc: %d, line number: %d\n", line.StartPc, line.LineNumber)
+	}
+	return result
 }
 
 type NestMembers struct {
@@ -293,20 +352,6 @@ func (n *NestMembers) String(constantPool []ConstantPoolInfo) string {
 		result += constantPool[nestMember].String(constantPool)
 	}
 	return result
-}
-
-type SourceDebugExtension struct {
-	AttributeBase
-	DebugExtension []uint8
-}
-
-func (s *SourceDebugExtension) parse(base *AttributeBase, data []byte, constantPool []ConstantPoolInfo) {
-	s.AttributeBase = *base
-	binary.Read(bytes.NewBuffer(data), binary.BigEndian, &s.DebugExtension)
-}
-
-func (n *SourceDebugExtension) String(constantPool []ConstantPoolInfo) string {
-	return string(n.DebugExtension)
 }
 
 type BootStrapMethod struct {
