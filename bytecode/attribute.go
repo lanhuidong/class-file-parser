@@ -39,6 +39,9 @@ func parse(data []byte, index int, constantPool []ConstantPoolInfo) (int, Attrib
 	case "EnclosingMethod":
 		item = &EnclosingMethod{}
 		item.parse(base, info, constantPool)
+	case "Synthetic":
+		item = &Synthetic{}
+		item.parse(base, info, constantPool)
 	case "SourceFile":
 		item = &SourceFile{}
 		item.parse(base, info, constantPool)
@@ -163,6 +166,18 @@ func (e *Exceptions) String(constantPool []ConstantPoolInfo) string {
 		result += constantPool[index].String(constantPool)
 	}
 	return result
+}
+
+type Synthetic struct {
+	AttributeBase
+}
+
+func (s *Synthetic) parse(base *AttributeBase, data []byte, constantPool []ConstantPoolInfo) {
+	s.AttributeBase = *base
+}
+
+func (s *Synthetic) String(constantPool []ConstantPoolInfo) string {
+	return "Synthetic"
 }
 
 type InnerClasses struct {
