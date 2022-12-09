@@ -42,6 +42,9 @@ func parse(data []byte, index int, constantPool []ConstantPoolInfo) (int, Attrib
 	case "Synthetic":
 		item = &Synthetic{}
 		item.parse(base, info, constantPool)
+	case "Signature":
+		item = &Signature{}
+		item.parse(base, info, constantPool)
 	case "SourceFile":
 		item = &SourceFile{}
 		item.parse(base, info, constantPool)
@@ -178,6 +181,20 @@ func (s *Synthetic) parse(base *AttributeBase, data []byte, constantPool []Const
 
 func (s *Synthetic) String(constantPool []ConstantPoolInfo) string {
 	return "Synthetic"
+}
+
+type Signature struct {
+	AttributeBase
+	SignatureIndex uint16
+}
+
+func (s *Signature) parse(base *AttributeBase, data []byte, constantPool []ConstantPoolInfo) {
+	s.AttributeBase = *base
+	binary.Read(bytes.NewBuffer(data), binary.BigEndian, &s.SignatureIndex)
+}
+
+func (s *Signature) String(constantPool []ConstantPoolInfo) string {
+	return constantPool[s.SignatureIndex].String(constantPool)
 }
 
 type InnerClasses struct {
