@@ -31,23 +31,8 @@ func (f *FieldInfo) Parse(data []byte, index int, constantPool []ConstantPoolInf
 	binary.Read(bytes.NewBuffer(data[index+6:index+8]), binary.BigEndian, &f.AttributesCount)
 
 	index += 8
-	f.Attributes = make([]AttributeInfo, f.AttributesCount)
-	for i := 0; i < int(f.AttributesCount); i++ {
-		attr := &AttributeCommon{}
-		index += attr.Parse(data, index)
-		var item AttributeInfo
-		switch attr.GetName(constantPool) {
-		case "ConstantValue":
-			item = &ConstantValue{}
-			item.Parse(attr.NameIndex, attr.Length, attr.Info)
-		case "SourceFile":
-			item = &SourceFile{}
-			item.Parse(attr.NameIndex, attr.Length, attr.Info)
-		default:
-			fmt.Printf("field attr %s \n", attr.GetName(constantPool))
-		}
-		f.Attributes[i] = item
-	}
+	index, attrs := ParseAttribute(int(f.AttributesCount), data, index, constantPool)
+	f.Attributes = attrs
 	return index
 }
 
@@ -76,7 +61,7 @@ func (f *FieldInfo) String(constantPool []ConstantPoolInfo) string {
 	result += fmt.Sprintf("\n属性个数: %d\n", f.AttributesCount)
 	for _, attr := range f.Attributes {
 		if attr != nil {
-			result += attr.GetName(constantPool) + ": " + attr.String(constantPool) + "\n"
+			result += attr.GetName() + ": " + attr.String(constantPool) + "\n"
 		}
 	}
 	return result

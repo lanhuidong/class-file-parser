@@ -152,37 +152,8 @@ func (f *ClassFile) Parser(data []byte) {
 	binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &f.AttributesCount)
 	index += 2
 
-	for i := 0; i < int(f.AttributesCount); i++ {
-		attr := &AttributeCommon{}
-		index += attr.Parse(data, index)
-		var item AttributeInfo
-		switch attr.GetName(f.ConstantPool) {
-		case "ConstantValue":
-			item = &ConstantValue{}
-			item.Parse(attr.NameIndex, attr.Length, attr.Info)
-		case "SourceFile":
-			item = &SourceFile{}
-			item.Parse(attr.NameIndex, attr.Length, attr.Info)
-		case "InnerClasses":
-			item = &InnerClasses{}
-			item.Parse(attr.NameIndex, attr.Length, attr.Info)
-		case "EnclosingMethod":
-			item = &EnclosingMethod{}
-			item.Parse(attr.NameIndex, attr.Length, attr.Info)
-		case "SourceDebugExtension":
-			item = &SourceDebugExtension{}
-			item.Parse(attr.NameIndex, attr.Length, attr.Info)
-		case "BootstrapMethods":
-			item = &BootstrapMethods{}
-			item.Parse(attr.NameIndex, attr.Length, attr.Info)
-		case "NestMembers":
-			item = &NestMembers{}
-			item.Parse(attr.NameIndex, attr.Length, attr.Info)
-		default:
-			fmt.Printf("attribue name is %s\n", f.ConstantPool[attr.NameIndex].String(f.ConstantPool))
-		}
-		f.Attributes = append(f.Attributes, item)
-	}
+	_, attrs := ParseAttribute(int(f.AttributesCount), data, index, f.ConstantPool)
+	f.Attributes = attrs
 }
 
 func (f *ClassFile) String() string {
@@ -254,7 +225,7 @@ func (f *ClassFile) String() string {
 	result += fmt.Sprintf("属性个数: %d\n", f.AttributesCount)
 	for _, attr := range f.Attributes {
 		if attr != nil {
-			result += attr.GetName(f.ConstantPool) + ": " + attr.String(f.ConstantPool) + "\n"
+			result += attr.GetName() + ": " + attr.String(f.ConstantPool) + "\n"
 		}
 	}
 	return result

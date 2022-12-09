@@ -34,28 +34,8 @@ func (m *MethodInfo) Parse(data []byte, index int, constantPool []ConstantPoolIn
 	binary.Read(bytes.NewBuffer(data[index+6:index+8]), binary.BigEndian, &m.AttributesCount)
 
 	index += 8
-	indexInc := 8
-	m.Attributes = make([]AttributeInfo, m.AttributesCount)
-	for i := 0; i < int(m.AttributesCount); i++ {
-		attr := &AttributeCommon{}
-		indexInc = attr.Parse(data, index)
-		index += indexInc
-		var item AttributeInfo
-		switch attr.GetName(constantPool) {
-		case "SourceFile":
-			item = &SourceFile{}
-			item.Parse(attr.NameIndex, attr.Length, attr.Info)
-		case "EnclosingMethod":
-			item = &EnclosingMethod{}
-			item.Parse(attr.NameIndex, attr.Length, attr.Info)
-		case "SourceDebugExtension":
-			item = &SourceDebugExtension{}
-			item.Parse(attr.NameIndex, attr.Length, attr.Info)
-		default:
-			fmt.Printf("method attr %s \n", attr.GetName(constantPool))
-		}
-		m.Attributes[i] = item
-	}
+	index, attrs := ParseAttribute(int(m.AttributesCount), data, index, constantPool)
+	m.Attributes = attrs
 	return index
 }
 
@@ -87,7 +67,7 @@ func (m *MethodInfo) String(constantPool []ConstantPoolInfo) string {
 	result += fmt.Sprintf("\n属性个数: %d\n", m.AttributesCount)
 	for _, attr := range m.Attributes {
 		if attr != nil {
-			result += attr.GetName(constantPool) + ": " + attr.String(constantPool) + "\n"
+			result += attr.GetName() + ": " + attr.String(constantPool) + "\n"
 		}
 	}
 	return result
