@@ -54,6 +54,9 @@ func parse(data []byte, index int, constantPool []ConstantPoolInfo) (int, Attrib
 	case "LineNumberTable":
 		item = &LineNumberTable{}
 		item.parse(base, info, constantPool)
+	case "LocalVariableTable":
+		item = &LocalVariableTable{}
+		item.parse(base, info, constantPool)
 	case "LocalVariableTypeTable":
 		item = &LocalVariableTypeTable{}
 		item.parse(base, info, constantPool)
@@ -327,6 +330,49 @@ func (l *LineNumberTable) String(constantPool []ConstantPoolInfo) string {
 	result := ""
 	for _, line := range l.LineNumber {
 		result += fmt.Sprintf("start pc: %d, line number: %d\n", line.StartPc, line.LineNumber)
+	}
+	return result
+}
+
+type LocalVariable struct {
+	StartPc         uint16
+	Length          uint16
+	NameIndex       uint16
+	DescriptorIndex uint16
+	Index           uint16
+}
+
+func (l *LocalVariable) Parse(data []byte, index int) {
+	binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &l.StartPc)
+	binary.Read(bytes.NewBuffer(data[index+2:index+4]), binary.BigEndian, &l.Length)
+	binary.Read(bytes.NewBuffer(data[index+4:index+6]), binary.BigEndian, &l.NameIndex)
+	binary.Read(bytes.NewBuffer(data[index+6:index+8]), binary.BigEndian, &l.DescriptorIndex)
+	binary.Read(bytes.NewBuffer(data[index+8:index+10]), binary.BigEndian, &l.Index)
+}
+
+type LocalVariableTable struct {
+	AttributeBase
+	LocalVariableTableLength uint16
+	LocalVariable            []LocalVariable
+}
+
+func (l *LocalVariableTable) parse(base *AttributeBase, data []byte, constantPool []ConstantPoolInfo) {
+	l.AttributeBase = *base
+	binary.Read(bytes.NewBuffer(data[0:2]), binary.BigEndian, &l.LocalVariableTableLength)
+	index := 2
+	for i := 0; i < int(l.LocalVariableTableLength); i++ {
+		localVar := &LocalVariable{}
+		localVar.Parse(data, index)
+		index += 10
+		l.LocalVariable = append(l.LocalVariable, *localVar)
+	}
+
+}
+
+func (l *LocalVariableTable) String(constantPool []ConstantPoolInfo) string {
+	result := ""
+	for _, localVar := range l.LocalVariable {
+		result += fmt.Sprintf("start pc: %d, length: %d, name index: %d, descriptor index: %d, index: %d\n", localVar.StartPc, localVar.Length, localVar.NameIndex, localVar.DescriptorIndex, localVar.Index)
 	}
 	return result
 }
