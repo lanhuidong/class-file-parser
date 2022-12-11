@@ -64,6 +64,9 @@ func parse(data []byte, index int, constantPool []ConstantPoolInfo) (int, Attrib
 	case "Deprecated":
 		item = &Deprecated{}
 		item.parse(base, info, constantPool)
+	case "RuntimeVisibleAnnotations":
+		item = &RuntimeVisibleAnnotations{}
+		item.parse(base, info, constantPool)
 	case "BootstrapMethods":
 		item = &BootstrapMethods{}
 		item.parse(base, info, constantPool)
@@ -436,6 +439,49 @@ func (d *Deprecated) parse(base *AttributeBase, data []byte, constantPool []Cons
 }
 
 func (d *Deprecated) String(constantPool []ConstantPoolInfo) string {
+	return ""
+}
+
+type ArrayValue struct {
+	NumValues uint16
+	Values    []ElementValue
+}
+
+type EnumConstValue struct {
+	TypeNameIndex  uint16
+	ConstNameIndex uint16
+}
+
+type ElementValue struct {
+	Tag             uint8
+	ConstValueIndex uint16
+	EnumConstValue
+	ClassInfoIndex  uint16
+	AnnotationValue Annotation
+	ArrayValue
+}
+
+type ElementValuePairs struct {
+	ElementNameIndex uint16
+	ElementValue
+}
+
+type Annotation struct {
+	TypeIndex            uint16
+	NumElementValuePairs uint16
+	ValuePairs           []ElementValuePairs
+}
+
+type RuntimeVisibleAnnotations struct {
+	AttributeBase
+	NumAnnotations uint16
+}
+
+func (r *RuntimeVisibleAnnotations) parse(base *AttributeBase, data []byte, constantPool []ConstantPoolInfo) {
+	r.AttributeBase = *base
+}
+
+func (r *RuntimeVisibleAnnotations) String(constantPool []ConstantPoolInfo) string {
 	return ""
 }
 
