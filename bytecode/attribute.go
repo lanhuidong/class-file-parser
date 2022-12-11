@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"strconv"
 )
 
 func ParseAttribute(count int, data []byte, index int, constantPool []ConstantPoolInfo) (int, []AttributeInfo) {
@@ -59,6 +60,9 @@ func parse(data []byte, index int, constantPool []ConstantPoolInfo) (int, Attrib
 		item.parse(base, info, constantPool)
 	case "LocalVariableTypeTable":
 		item = &LocalVariableTypeTable{}
+		item.parse(base, info, constantPool)
+	case "Deprecated":
+		item = &Deprecated{}
 		item.parse(base, info, constantPool)
 	case "BootstrapMethods":
 		item = &BootstrapMethods{}
@@ -418,6 +422,21 @@ func (l *LocalVariableTypeTable) String(constantPool []ConstantPoolInfo) string 
 		result += fmt.Sprintf("start pc: %d, length: %d, name index: %d, signature index: %d, index: %d\n", localVar.StartPc, localVar.Length, localVar.NameIndex, localVar.SignatureIndex, localVar.Index)
 	}
 	return result
+}
+
+type Deprecated struct {
+	AttributeBase
+}
+
+func (d *Deprecated) parse(base *AttributeBase, data []byte, constantPool []ConstantPoolInfo) {
+	d.AttributeBase = *base
+	if d.Length != 0 {
+		panic("attribute deprecated's length must be 0, but actual is " + strconv.Itoa(int(d.Length)))
+	}
+}
+
+func (d *Deprecated) String(constantPool []ConstantPoolInfo) string {
+	return ""
 }
 
 type NestMembers struct {
