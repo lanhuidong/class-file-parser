@@ -31,6 +31,9 @@ func parse(data []byte, index int, constantPool []ConstantPoolInfo) (int, Attrib
 	case "Code":
 		item = &Code{}
 		item.parse(base, info, constantPool)
+	/*case "StackMapTable":
+	item = &StackMapTable{}
+	item.parse(base, info, constantPool)*/
 	case "Exceptions":
 		item = &Exceptions{}
 		item.parse(base, info, constantPool)
@@ -64,7 +67,7 @@ func parse(data []byte, index int, constantPool []ConstantPoolInfo) (int, Attrib
 	case "Deprecated":
 		item = &Deprecated{}
 		item.parse(base, info, constantPool)
-	case "RuntimeVisibleAnnotations":
+	case "RuntimeVisibleAnnotations", "RuntimeInvisibleAnnotations":
 		item = &RuntimeVisibleAnnotations{}
 		item.parse(base, info, constantPool)
 	case "BootstrapMethods":
@@ -72,6 +75,9 @@ func parse(data []byte, index int, constantPool []ConstantPoolInfo) (int, Attrib
 		item.parse(base, info, constantPool)
 	case "NestMembers":
 		item = &NestMembers{}
+		item.parse(base, info, constantPool)
+	case "PermittedSubclasses":
+		item = &PermittedSubclasses{}
 		item.parse(base, info, constantPool)
 	default:
 		fmt.Printf("attribue name is %s\n", base.Name)
@@ -165,6 +171,20 @@ func (c *Code) String(constantPool []ConstantPoolInfo) string {
 		}
 	}
 	return result
+}
+
+type StackMapTable struct {
+	AttributeBase
+	NumberOfEntries uint16
+}
+
+func (s *StackMapTable) parse(base *AttributeBase, data []byte, constantPool []ConstantPoolInfo) {
+	s.AttributeBase = *base
+	binary.Read(bytes.NewBuffer(data[0:2]), binary.BigEndian, &s.NumberOfEntries)
+}
+
+func (s *StackMapTable) String(constantPool []ConstantPoolInfo) string {
+	return ""
 }
 
 type Exceptions struct {
@@ -625,6 +645,32 @@ func (b *BootstrapMethods) String(constantPool []ConstantPoolInfo) string {
 	result := ""
 	for _, method := range b.Methods {
 		result += constantPool[method.BootstrapMethodRef].String(constantPool)
+	}
+	return result
+}
+
+type PermittedSubclasses struct {
+	AttributeBase
+	NumberOfClasses uint16
+	Classes         []uint16
+}
+
+func (p *PermittedSubclasses) parse(base *AttributeBase, data []byte, constantPool []ConstantPoolInfo) {
+	p.AttributeBase = *base
+	binary.Read(bytes.NewBuffer(data[0:2]), binary.BigEndian, &p.NumberOfClasses)
+	index := 2
+	for i := 0; i < int(p.NumberOfClasses); i++ {
+		var classIndex uint16
+		binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &classIndex)
+		p.Classes = append(p.Classes, classIndex)
+		index += 2
+	}
+}
+
+func (p *PermittedSubclasses) String(constantPool []ConstantPoolInfo) string {
+	result := ""
+	for _, class := range p.Classes {
+		result += constantPool[class].String(constantPool) + " "
 	}
 	return result
 }
