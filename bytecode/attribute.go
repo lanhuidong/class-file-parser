@@ -76,6 +76,9 @@ func parse(data []byte, index int, constantPool []ConstantPoolInfo) (int, Attrib
 	case "NestMembers":
 		item = &NestMembers{}
 		item.parse(base, info, constantPool)
+	case "Record":
+		item = &Record{}
+		item.parse(base, info, constantPool)
 	case "PermittedSubclasses":
 		item = &PermittedSubclasses{}
 		item.parse(base, info, constantPool)
@@ -645,6 +648,48 @@ func (b *BootstrapMethods) String(constantPool []ConstantPoolInfo) string {
 	result := ""
 	for _, method := range b.Methods {
 		result += constantPool[method.BootstrapMethodRef].String(constantPool)
+	}
+	return result
+}
+
+type RecordComponent struct {
+	NameIndex       uint16
+	DescriptorIndex uint16
+	AttributesCount uint16
+	Attributes      []AttributeInfo
+}
+
+func (r *RecordComponent) parse(data []byte, index int, constantPool []ConstantPoolInfo) int {
+	binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &r.NameIndex)
+	binary.Read(bytes.NewBuffer(data[index+2:index+4]), binary.BigEndian, &r.DescriptorIndex)
+	binary.Read(bytes.NewBuffer(data[index+4:index+6]), binary.BigEndian, &r.AttributesCount)
+	index += 6
+	_, attrs := ParseAttribute(int(r.AttributesCount), data, index, constantPool)
+	r.Attributes = attrs
+	return index
+}
+
+type Record struct {
+	AttributeBase
+	ComponentsCount     uint16
+	RecordComponentInfo []RecordComponent
+}
+
+func (r *Record) parse(base *AttributeBase, data []byte, constantPool []ConstantPoolInfo) {
+	r.AttributeBase = *base
+	binary.Read(bytes.NewBuffer(data[0:2]), binary.BigEndian, &r.ComponentsCount)
+	index := 2
+	for i := 0; i < int(r.ComponentsCount); i++ {
+		component := &RecordComponent{}
+		index = component.parse(data, index, constantPool)
+		r.RecordComponentInfo = append(r.RecordComponentInfo, *component)
+	}
+}
+
+func (b *Record) String(constantPool []ConstantPoolInfo) string {
+	result := ""
+	for _, component := range b.RecordComponentInfo {
+		result += " name: " + constantPool[component.NameIndex].String(constantPool)
 	}
 	return result
 }
