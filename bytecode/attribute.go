@@ -447,9 +447,25 @@ type ArrayValue struct {
 	Values    []ElementValue
 }
 
+func (a *ArrayValue) parse(data []byte, index int) int {
+	binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &a.NumValues)
+	index += 2
+	for i := 0; i < int(a.NumValues); i++ {
+		elem := &ElementValue{}
+		index = elem.parse(data, index)
+		a.Values = append(a.Values, *elem)
+	}
+	return index
+}
+
 type EnumConstValue struct {
 	TypeNameIndex  uint16
 	ConstNameIndex uint16
+}
+
+func (e *EnumConstValue) parse(data []byte) {
+	binary.Read(bytes.NewBuffer(data[0:2]), binary.BigEndian, &e.TypeNameIndex)
+	binary.Read(bytes.NewBuffer(data[2:4]), binary.BigEndian, &e.ConstNameIndex)
 }
 
 type ElementValue struct {
@@ -461,9 +477,45 @@ type ElementValue struct {
 	ArrayValue
 }
 
+func (e *ElementValue) parse(data []byte, index int) int {
+	binary.Read(bytes.NewBuffer(data[index:index+1]), binary.BigEndian, &e.Tag)
+	switch e.Tag {
+	case 'B', 'C', 'D', 'F', 'I', 'J', 'S', 'Z', 's':
+		binary.Read(bytes.NewBuffer(data[1:3]), binary.BigEndian, &e.ConstValueIndex)
+		index += 3
+	case 'e':
+		value := &EnumConstValue{}
+		value.parse(data[index+1 : index+5])
+		e.EnumConstValue = *value
+		index += 5
+	case 'c':
+		binary.Read(bytes.NewBuffer(data[1:3]), binary.BigEndian, &e.ClassInfoIndex)
+		index += 3
+	case '@':
+		ann := &Annotation{}
+		index = ann.parse(data, index+1)
+		e.AnnotationValue = *ann
+	case '[':
+		arr := &ArrayValue{}
+		index = arr.parse(data, index+1)
+		e.ArrayValue = *arr
+	default:
+		panic(fmt.Sprintf("unknown element value tag: %d(%c)\n", e.Tag, e.Tag))
+	}
+	return index
+}
+
 type ElementValuePairs struct {
 	ElementNameIndex uint16
 	ElementValue
+}
+
+func (e *ElementValuePairs) parse(data []byte, index int) int {
+	binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &e.ElementNameIndex)
+	elem := &ElementValue{}
+	index = elem.parse(data, index+2)
+	e.ElementValue = *elem
+	return index
 }
 
 type Annotation struct {
@@ -472,17 +524,36 @@ type Annotation struct {
 	ValuePairs           []ElementValuePairs
 }
 
+func (a *Annotation) parse(data []byte, index int) int {
+	binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &a.TypeIndex)
+	binary.Read(bytes.NewBuffer(data[index+2:index+4]), binary.BigEndian, &a.NumElementValuePairs)
+	index += 4
+	for i := 0; i < int(a.NumElementValuePairs); i++ {
+		pair := &ElementValuePairs{}
+		index = pair.parse(data, index)
+		a.ValuePairs = append(a.ValuePairs, *pair)
+	}
+	return index
+}
+
 type RuntimeVisibleAnnotations struct {
 	AttributeBase
 	NumAnnotations uint16
+	Annotations    []Annotation
 }
 
 func (r *RuntimeVisibleAnnotations) parse(base *AttributeBase, data []byte, constantPool []ConstantPoolInfo) {
 	r.AttributeBase = *base
+	binary.Read(bytes.NewBuffer(data[0:2]), binary.BigEndian, &r.NumAnnotations)
+	index := 2
+	for i := 0; i < int(r.NumAnnotations); i++ {
+		ann := &Annotation{}
+		index = ann.parse(data, index)
+	}
 }
 
 func (r *RuntimeVisibleAnnotations) String(constantPool []ConstantPoolInfo) string {
-	return ""
+	return fmt.Sprintf("%d runtime visible annotation\n", r.NumAnnotations)
 }
 
 type NestMembers struct {
