@@ -73,6 +73,9 @@ func parse(data []byte, index int, constantPool []ConstantPoolInfo) (int, Attrib
 	case "BootstrapMethods":
 		item = &BootstrapMethods{}
 		item.parse(base, info, constantPool)
+	case "MethodParameters":
+		item = &MethodParameters{}
+		item.parse(base, info, constantPool)
 	case "ModulePackages":
 		item = &ModulePackages{}
 		item.parse(base, info, constantPool)
@@ -594,12 +597,6 @@ type BootStrapMethod struct {
 	Arguments          []uint16
 }
 
-type BootstrapMethods struct {
-	AttributeBase
-	Num     uint16
-	Methods []BootStrapMethod
-}
-
 func (b *BootStrapMethod) parse(data []byte, index int) int {
 	binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &b.BootstrapMethodRef)
 	binary.Read(bytes.NewBuffer(data[index+2:index+4]), binary.BigEndian, &b.ArgumentsNum)
@@ -612,6 +609,12 @@ func (b *BootStrapMethod) parse(data []byte, index int) int {
 		index += 2
 	}
 	return index
+}
+
+type BootstrapMethods struct {
+	AttributeBase
+	Num     uint16
+	Methods []BootStrapMethod
 }
 
 func (b *BootstrapMethods) parse(base *AttributeBase, data []byte, constantPool []ConstantPoolInfo) {
@@ -630,6 +633,42 @@ func (b *BootstrapMethods) String(constantPool []ConstantPoolInfo) string {
 	result := ""
 	for _, method := range b.Methods {
 		result += constantPool[method.BootstrapMethodRef].String(constantPool)
+	}
+	return result
+}
+
+type MethodParameter struct {
+	NameIndex   uint16
+	AccessFlags uint16
+}
+
+func (m *MethodParameter) parse(data []byte) {
+	binary.Read(bytes.NewBuffer(data[0:2]), binary.BigEndian, &m.NameIndex)
+	binary.Read(bytes.NewBuffer(data[2:4]), binary.BigEndian, &m.AccessFlags)
+}
+
+type MethodParameters struct {
+	AttributeBase
+	ParametersCount uint8
+	parameter       []MethodParameter
+}
+
+func (m *MethodParameters) parse(base *AttributeBase, data []byte, constantPool []ConstantPoolInfo) {
+	m.AttributeBase = *base
+	binary.Read(bytes.NewBuffer(data[0:1]), binary.BigEndian, &m.ParametersCount)
+	index := 1
+	for n := 0; n < int(m.ParametersCount); n++ {
+		param := &MethodParameter{}
+		param.parse(data[index:])
+		m.parameter = append(m.parameter, *param)
+		index += 4
+	}
+}
+
+func (m *MethodParameters) String(constantPool []ConstantPoolInfo) string {
+	result := ""
+	for _, param := range m.parameter {
+		result += constantPool[param.NameIndex].String(constantPool) + " "
 	}
 	return result
 }
