@@ -70,6 +70,9 @@ func parse(data []byte, index int, constantPool []ConstantPoolInfo) (int, Attrib
 	case "RuntimeVisibleAnnotations", "RuntimeInvisibleAnnotations":
 		item = &RuntimeVisibleAnnotations{}
 		item.parse(base, info, constantPool)
+	case "RuntimeVisibleParameterAnnotations", "RuntimeInvisibleParameterAnnotations":
+		item = &RuntimeVisibleParameterAnnotations{}
+		item.parse(base, info, constantPool)
 	case "AnnotationDefault":
 		item = &AnnotationDefault{}
 		item.parse(base, info, constantPool)
@@ -587,11 +590,49 @@ func (r *RuntimeVisibleAnnotations) parse(base *AttributeBase, data []byte, cons
 	for i := 0; i < int(r.NumAnnotations); i++ {
 		ann := &Annotation{}
 		index = ann.parse(data, index)
+		r.Annotations = append(r.Annotations, *ann)
 	}
 }
 
 func (r *RuntimeVisibleAnnotations) String(constantPool []ConstantPoolInfo) string {
 	return fmt.Sprintf("%d runtime visible annotation\n", r.NumAnnotations)
+}
+
+type ParameterAnnotation struct {
+	NumAnnotations uint16
+	Annotations    []Annotation
+}
+
+func (p *ParameterAnnotation) parse(data []byte, index int) int {
+	binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &p.NumAnnotations)
+	index += 2
+	for i := 0; i < int(p.NumAnnotations); i++ {
+		ann := &Annotation{}
+		index = ann.parse(data, index)
+		p.Annotations = append(p.Annotations, *ann)
+	}
+	return index
+}
+
+type RuntimeVisibleParameterAnnotations struct {
+	AttributeBase
+	NumParameters        uint8
+	ParameterAnnotations []ParameterAnnotation
+}
+
+func (r *RuntimeVisibleParameterAnnotations) parse(base *AttributeBase, data []byte, constantPool []ConstantPoolInfo) {
+	r.AttributeBase = *base
+	binary.Read(bytes.NewBuffer(data[0:1]), binary.BigEndian, &r.NumParameters)
+	index := 1
+	for i := 0; i < int(r.NumParameters); i++ {
+		param := &ParameterAnnotation{}
+		index = param.parse(data, index)
+		r.ParameterAnnotations = append(r.ParameterAnnotations, *param)
+	}
+}
+
+func (r *RuntimeVisibleParameterAnnotations) String(constantPool []ConstantPoolInfo) string {
+	return ""
 }
 
 type AnnotationDefault struct {
