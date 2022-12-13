@@ -70,6 +70,9 @@ func parse(data []byte, index int, constantPool []ConstantPoolInfo) (int, Attrib
 	case "RuntimeVisibleAnnotations", "RuntimeInvisibleAnnotations":
 		item = &RuntimeVisibleAnnotations{}
 		item.parse(base, info, constantPool)
+	case "AnnotationDefault":
+		item = &AnnotationDefault{}
+		item.parse(base, info, constantPool)
 	case "BootstrapMethods":
 		item = &BootstrapMethods{}
 		item.parse(base, info, constantPool)
@@ -589,6 +592,21 @@ func (r *RuntimeVisibleAnnotations) parse(base *AttributeBase, data []byte, cons
 
 func (r *RuntimeVisibleAnnotations) String(constantPool []ConstantPoolInfo) string {
 	return fmt.Sprintf("%d runtime visible annotation\n", r.NumAnnotations)
+}
+
+type AnnotationDefault struct {
+	AttributeBase
+	DefaultValue ElementValue
+}
+
+func (a *AnnotationDefault) parse(base *AttributeBase, data []byte, constantPool []ConstantPoolInfo) {
+	a.AttributeBase = *base
+	a.DefaultValue = ElementValue{}
+	a.DefaultValue.parse(data, 0)
+}
+
+func (a *AnnotationDefault) String(constantPool []ConstantPoolInfo) string {
+	return ""
 }
 
 type BootStrapMethod struct {
