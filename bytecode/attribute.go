@@ -73,6 +73,12 @@ func parse(data []byte, index int, constantPool []ConstantPoolInfo) (int, Attrib
 	case "BootstrapMethods":
 		item = &BootstrapMethods{}
 		item.parse(base, info, constantPool)
+	case "ModulePackages":
+		item = &ModulePackages{}
+		item.parse(base, info, constantPool)
+	case "ModuleMainClass":
+		item = &ModuleMainClass{}
+		item.parse(base, info, constantPool)
 	case "NestHost":
 		item = &NestHost{}
 		item.parse(base, info, constantPool)
@@ -626,6 +632,46 @@ func (b *BootstrapMethods) String(constantPool []ConstantPoolInfo) string {
 		result += constantPool[method.BootstrapMethodRef].String(constantPool)
 	}
 	return result
+}
+
+type ModulePackages struct {
+	AttributeBase
+	PackageCount uint16
+	PackageIndex []uint16
+}
+
+func (m *ModulePackages) parse(base *AttributeBase, data []byte, constantPool []ConstantPoolInfo) {
+	m.AttributeBase = *base
+	binary.Read(bytes.NewBuffer(data[0:2]), binary.BigEndian, &m.PackageCount)
+	index := 2
+	for i := 0; i < int(m.PackageCount); i++ {
+		var packageIndex uint16
+		binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &packageIndex)
+		index += 2
+		m.PackageIndex = append(m.PackageIndex, packageIndex)
+	}
+}
+
+func (m *ModulePackages) String(constantPool []ConstantPoolInfo) string {
+	result := ""
+	for _, index := range m.PackageIndex {
+		result += "\n" + constantPool[index].String(constantPool)
+	}
+	return result
+}
+
+type ModuleMainClass struct {
+	AttributeBase
+	MainClassIndex uint16
+}
+
+func (m *ModuleMainClass) parse(base *AttributeBase, data []byte, constantPool []ConstantPoolInfo) {
+	m.AttributeBase = *base
+	binary.Read(bytes.NewBuffer(data[0:2]), binary.BigEndian, &m.MainClassIndex)
+}
+
+func (m *ModuleMainClass) String(constantPool []ConstantPoolInfo) string {
+	return constantPool[m.MainClassIndex].String(constantPool)
 }
 
 type NestHost struct {
