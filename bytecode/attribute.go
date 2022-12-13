@@ -73,6 +73,9 @@ func parse(data []byte, index int, constantPool []ConstantPoolInfo) (int, Attrib
 	case "BootstrapMethods":
 		item = &BootstrapMethods{}
 		item.parse(base, info, constantPool)
+	case "NestHost":
+		item = &NestHost{}
+		item.parse(base, info, constantPool)
 	case "NestMembers":
 		item = &NestMembers{}
 		item.parse(base, info, constantPool)
@@ -579,33 +582,6 @@ func (r *RuntimeVisibleAnnotations) String(constantPool []ConstantPoolInfo) stri
 	return fmt.Sprintf("%d runtime visible annotation\n", r.NumAnnotations)
 }
 
-type NestMembers struct {
-	AttributeBase
-	NumberOfClasses uint16
-	Classes         []uint16
-}
-
-func (n *NestMembers) parse(base *AttributeBase, data []byte, constantPool []ConstantPoolInfo) {
-	n.AttributeBase = *base
-	binary.Read(bytes.NewBuffer(data[0:2]), binary.BigEndian, &n.NumberOfClasses)
-	n.Classes = make([]uint16, n.NumberOfClasses)
-	index := 2
-	for i := 0; i < int(n.NumberOfClasses); i++ {
-		var classIndex uint16
-		binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &classIndex)
-		n.Classes[i] = classIndex
-		index += 2
-	}
-}
-
-func (n *NestMembers) String(constantPool []ConstantPoolInfo) string {
-	result := ""
-	for _, nestMember := range n.Classes {
-		result += constantPool[nestMember].String(constantPool)
-	}
-	return result
-}
-
 type BootStrapMethod struct {
 	BootstrapMethodRef uint16
 	ArgumentsNum       uint16
@@ -648,6 +624,47 @@ func (b *BootstrapMethods) String(constantPool []ConstantPoolInfo) string {
 	result := ""
 	for _, method := range b.Methods {
 		result += constantPool[method.BootstrapMethodRef].String(constantPool)
+	}
+	return result
+}
+
+type NestHost struct {
+	AttributeBase
+	HostClassIndex uint16
+}
+
+func (n *NestHost) parse(base *AttributeBase, data []byte, constantPool []ConstantPoolInfo) {
+	n.AttributeBase = *base
+	binary.Read(bytes.NewBuffer(data[0:2]), binary.BigEndian, &n.HostClassIndex)
+}
+
+func (n *NestHost) String(constantPool []ConstantPoolInfo) string {
+	return constantPool[n.HostClassIndex].String(constantPool)
+}
+
+type NestMembers struct {
+	AttributeBase
+	NumberOfClasses uint16
+	Classes         []uint16
+}
+
+func (n *NestMembers) parse(base *AttributeBase, data []byte, constantPool []ConstantPoolInfo) {
+	n.AttributeBase = *base
+	binary.Read(bytes.NewBuffer(data[0:2]), binary.BigEndian, &n.NumberOfClasses)
+	n.Classes = make([]uint16, n.NumberOfClasses)
+	index := 2
+	for i := 0; i < int(n.NumberOfClasses); i++ {
+		var classIndex uint16
+		binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &classIndex)
+		n.Classes[i] = classIndex
+		index += 2
+	}
+}
+
+func (n *NestMembers) String(constantPool []ConstantPoolInfo) string {
+	result := ""
+	for _, nestMember := range n.Classes {
+		result += constantPool[nestMember].String(constantPool)
 	}
 	return result
 }
