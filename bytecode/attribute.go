@@ -82,6 +82,9 @@ func parse(data []byte, index int, constantPool []ConstantPoolInfo) (int, Attrib
 	case "MethodParameters":
 		item = &MethodParameters{}
 		item.parse(base, info, constantPool)
+	case "Module":
+		item = &Module{}
+		item.parse(base, info, constantPool)
 	case "ModulePackages":
 		item = &ModulePackages{}
 		item.parse(base, info, constantPool)
@@ -730,6 +733,150 @@ func (m *MethodParameters) String(constantPool []ConstantPoolInfo) string {
 		result += constantPool[param.NameIndex].String(constantPool) + " "
 	}
 	return result
+}
+
+type Require struct {
+	RequiresIndex        uint16
+	RequiresFlags        uint16
+	RequiresVersionIndex uint16
+}
+
+func (r *Require) parse(data []byte, index int) {
+	binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &r.RequiresIndex)
+	binary.Read(bytes.NewBuffer(data[index+2:index+4]), binary.BigEndian, &r.RequiresFlags)
+	binary.Read(bytes.NewBuffer(data[index+4:index+6]), binary.BigEndian, &r.RequiresVersionIndex)
+}
+
+type Export struct {
+	ExportsIndex   uint16
+	ExportsFlags   uint16
+	ExportsToCount uint16
+	ExportsToIndex []uint16
+}
+
+func (e *Export) parse(data []byte, index int) int {
+	binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &e.ExportsIndex)
+	binary.Read(bytes.NewBuffer(data[index+2:index+4]), binary.BigEndian, &e.ExportsFlags)
+	binary.Read(bytes.NewBuffer(data[index+4:index+6]), binary.BigEndian, &e.ExportsToCount)
+	index += 6
+	for i := 0; i < int(e.ExportsToCount); i++ {
+		var idx uint16
+		binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &idx)
+		e.ExportsToIndex = append(e.ExportsToIndex, idx)
+		index += 2
+	}
+	return index
+}
+
+type Open struct {
+	OpenIndex   uint16
+	OpenFlags   uint16
+	OpenToCount uint16
+	OpenToIndex []uint16
+}
+
+func (o *Open) parse(data []byte, index int) int {
+	binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &o.OpenIndex)
+	binary.Read(bytes.NewBuffer(data[index+2:index+4]), binary.BigEndian, &o.OpenFlags)
+	binary.Read(bytes.NewBuffer(data[index+4:index+6]), binary.BigEndian, &o.OpenToCount)
+	index += 6
+	for i := 0; i < int(o.OpenToCount); i++ {
+		var idx uint16
+		binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &idx)
+		o.OpenToIndex = append(o.OpenToIndex, idx)
+		index += 2
+	}
+	return index
+}
+
+type Provide struct {
+	ProvidesIndex     uint16
+	ProvidesWithCount uint16
+	ProvidesWithIndex []uint16
+}
+
+func (p *Provide) parse(data []byte, index int) int {
+	binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &p.ProvidesIndex)
+	binary.Read(bytes.NewBuffer(data[index+2:index+4]), binary.BigEndian, &p.ProvidesWithCount)
+	index += 4
+	for i := 0; i < int(p.ProvidesWithCount); i++ {
+		var idx uint16
+		binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &idx)
+		p.ProvidesWithIndex = append(p.ProvidesWithIndex, idx)
+		index += 2
+	}
+	return index
+}
+
+type Module struct {
+	AttributeBase
+	ModuleNameIndex    uint16
+	ModuleFlags        uint16
+	ModuleVersionIndex uint16
+	RequiresCount      uint16
+	Requires           []Require
+	ExportsCount       uint16
+	Exports            []Export
+	OpenCount          uint16
+	Opens              []Open
+	UsesCount          uint16
+	UsesIndex          []uint16
+	ProvidesCount      uint16
+	Provides           []Provide
+}
+
+func (m *Module) parse(base *AttributeBase, data []byte, constantPool []ConstantPoolInfo) {
+	m.AttributeBase = *base
+	index := 0
+	binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &m.ModuleNameIndex)
+	binary.Read(bytes.NewBuffer(data[index+2:index+4]), binary.BigEndian, &m.ModuleFlags)
+	binary.Read(bytes.NewBuffer(data[index+4:index+6]), binary.BigEndian, &m.ModuleVersionIndex)
+
+	binary.Read(bytes.NewBuffer(data[index+6:index+8]), binary.BigEndian, &m.RequiresCount)
+	index += 8
+	for i := 0; i < int(m.RequiresCount); i++ {
+		r := &Require{}
+		r.parse(data, index)
+		m.Requires = append(m.Requires, *r)
+		index += 6
+	}
+
+	binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &m.ExportsCount)
+	index += 2
+	for i := 0; i < int(m.ExportsCount); i++ {
+		e := &Export{}
+		index = e.parse(data, index)
+		m.Exports = append(m.Exports, *e)
+	}
+
+	binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &m.OpenCount)
+	index += 2
+	for i := 0; i < int(m.OpenCount); i++ {
+		o := &Open{}
+		index = o.parse(data, index)
+		m.Opens = append(m.Opens, *o)
+	}
+
+	binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &m.UsesCount)
+	index += 2
+	for i := 0; i < int(m.UsesCount); i++ {
+		var idx uint16
+		binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &idx)
+		m.UsesIndex = append(m.UsesIndex, idx)
+		idx += 2
+	}
+
+	binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &m.ProvidesCount)
+	index += 2
+	for i := 0; i < int(m.ProvidesCount); i++ {
+		p := &Provide{}
+		index = p.parse(data, index)
+		m.Provides = append(m.Provides, *p)
+	}
+}
+
+func (m *Module) String(constantPool []ConstantPoolInfo) string {
+	return constantPool[m.ModuleNameIndex].String(constantPool)
 }
 
 type ModulePackages struct {
