@@ -73,6 +73,9 @@ func parse(data []byte, index int, constantPool []ConstantPoolInfo) (int, Attrib
 	case "RuntimeVisibleParameterAnnotations", "RuntimeInvisibleParameterAnnotations":
 		item = &RuntimeVisibleParameterAnnotations{}
 		item.parse(base, info, constantPool)
+	case "RuntimeVisibleTypeAnnotations", "RuntimeInvisibleTypeAnnotations":
+		item = &RuntimeVisibleTypeAnnotations{}
+		item.parse(base, info, constantPool)
 	case "AnnotationDefault":
 		item = &AnnotationDefault{}
 		item.parse(base, info, constantPool)
@@ -189,10 +192,8 @@ func (c *Code) parse(base *AttributeBase, data []byte, constantPool []ConstantPo
 func (c *Code) String(constantPool []ConstantPoolInfo) string {
 	result := fmt.Sprintf("max stack: %d, max locals: %d\n", c.MaxStack, c.MaxLocals)
 	for _, attr := range c.Attributes {
-		if attr != nil { //TODO 等所有解析完成后这个if应该移除
-			result += attr.GetName() + "\n"
-			result += attr.String(constantPool)
-		}
+		result += attr.GetName() + "\n"
+		result += attr.String(constantPool)
 	}
 	return result
 }
@@ -714,6 +715,159 @@ func (r *RuntimeVisibleParameterAnnotations) parse(base *AttributeBase, data []b
 }
 
 func (r *RuntimeVisibleParameterAnnotations) String(constantPool []ConstantPoolInfo) string {
+	return ""
+}
+
+type Table struct {
+	StartPc uint16
+	Length  uint16
+	Index   uint16
+}
+
+func (t *Table) parse(data []byte, index int) int {
+	binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &t.StartPc)
+	binary.Read(bytes.NewBuffer(data[index+2:index+4]), binary.BigEndian, &t.Length)
+	binary.Read(bytes.NewBuffer(data[index+4:index+6]), binary.BigEndian, &t.Index)
+	return index + 6
+}
+
+type LocalVarTarget struct {
+	TableLength uint16
+	Tables      []Table
+}
+
+func (l *LocalVarTarget) parse(data []byte, index int) int {
+	binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &l.TableLength)
+	index += 2
+	for i := 0; i < int(l.TableLength); i++ {
+		table := &Table{}
+		index = table.parse(data, index)
+		l.Tables = append(l.Tables, *table)
+	}
+	return index
+}
+
+type TargetInfo struct {
+	TypeParameterIndex   uint8
+	SupertypeIndex       uint16
+	BoundIndex           uint8
+	FormalParameterIndex uint8
+	ThrowsTypeIndex      uint16
+	LocalVarTarget
+	ExceptionTableIndex uint16
+	Offset              uint16
+	TypeArgumentIndex   uint8
+}
+
+type Path struct {
+	TypePathKind      uint8
+	TypeArgumentIndex uint8
+}
+
+func (p *Path) parse(data []byte, index int) int {
+	p.TypePathKind = data[index]
+	index++
+	p.TypeArgumentIndex = data[index]
+	index++
+	return index
+}
+
+type TypePath struct {
+	PathLength uint8
+}
+
+func (t *TypePath) parse(data []byte, index int) int {
+	t.PathLength = data[index]
+	index++
+	for i := 0; i < int(t.PathLength); i++ {
+		path := &Path{}
+		index = path.parse(data, index)
+	}
+	return index
+}
+
+type TypeAnnotation struct {
+	TargetType uint8
+	TypeIndex  uint16
+	TargetInfo
+	TargetPath           TypePath
+	NumElementValuePairs uint16
+	ValuePairs           []ElementValuePairs
+}
+
+func (t *TypeAnnotation) parse(data []byte, index int) int {
+	binary.Read(bytes.NewBuffer(data[index:index+1]), binary.BigEndian, &t.TargetType)
+	index += 1
+	binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &t.TypeIndex)
+	index += 2
+	switch t.TargetType {
+	case 0x00, 0x01:
+		t.TypeParameterIndex = data[index]
+		index++
+	case 0x10:
+		binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &t.SupertypeIndex)
+		index += 2
+	case 0x11, 0x12:
+		t.BoundIndex = data[index]
+		index++
+		t.TypeArgumentIndex = data[index]
+		index++
+	//case 0x13,0x14,0x15:
+	case 0x16:
+		t.FormalParameterIndex = data[index]
+		index++
+	case 0x17:
+		binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &t.ThrowsTypeIndex)
+		index += 2
+	case 0x40, 0x41:
+		target := &LocalVarTarget{}
+		index = target.parse(data, index)
+		t.LocalVarTarget = *target
+	case 0x42:
+		binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &t.ExceptionTableIndex)
+		index += 2
+	case 0x44, 0x45, 0x46:
+		binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &t.Offset)
+		index += 2
+	case 0x47, 0x48, 0x49, 0x4A, 0x4B:
+		binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &t.Offset)
+		index += 2
+		t.TypeArgumentIndex = data[index]
+		index++
+	}
+
+	targetPath := &TypePath{}
+	index = targetPath.parse(data, index)
+	t.TargetPath = *targetPath
+
+	binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &t.NumElementValuePairs)
+	index += 2
+	for i := 0; i < int(t.NumElementValuePairs); i++ {
+		pair := &ElementValuePairs{}
+		index = pair.parse(data, index)
+		t.ValuePairs = append(t.ValuePairs, *pair)
+	}
+	return index
+}
+
+type RuntimeVisibleTypeAnnotations struct {
+	AttributeBase
+	NumAnnotations uint16
+	Annotations    []TypeAnnotation
+}
+
+func (r *RuntimeVisibleTypeAnnotations) parse(base *AttributeBase, data []byte, constantPool []ConstantPoolInfo) {
+	r.AttributeBase = *base
+	binary.Read(bytes.NewBuffer(data[0:1]), binary.BigEndian, &r.NumAnnotations)
+	index := 1
+	for i := 0; i < int(r.NumAnnotations); i++ {
+		ann := &TypeAnnotation{}
+		index = ann.parse(data, index)
+		r.Annotations = append(r.Annotations, *ann)
+	}
+}
+
+func (r *RuntimeVisibleTypeAnnotations) String(constantPool []ConstantPoolInfo) string {
 	return ""
 }
 
