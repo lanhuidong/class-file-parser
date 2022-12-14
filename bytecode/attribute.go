@@ -31,9 +31,9 @@ func parse(data []byte, index int, constantPool []ConstantPoolInfo) (int, Attrib
 	case "Code":
 		item = &Code{}
 		item.parse(base, info, constantPool)
-	/*case "StackMapTable":
-	item = &StackMapTable{}
-	item.parse(base, info, constantPool)*/
+	case "StackMapTable":
+		item = &StackMapTable{}
+		item.parse(base, info, constantPool)
 	case "Exceptions":
 		item = &Exceptions{}
 		item.parse(base, info, constantPool)
@@ -197,14 +197,93 @@ func (c *Code) String(constantPool []ConstantPoolInfo) string {
 	return result
 }
 
+type VerificationTypeInfo struct {
+	Tag        uint8
+	CpoolIndex uint16
+	Offset     uint16
+}
+
+func (v *VerificationTypeInfo) parse(data []byte, index int) int {
+	binary.Read(bytes.NewBuffer(data[index:index+1]), binary.BigEndian, &v.Tag)
+	if v.Tag == 7 {
+		binary.Read(bytes.NewBuffer(data[index+1:index+3]), binary.BigEndian, &v.CpoolIndex)
+		index += 3
+	} else if v.Tag == 8 {
+		binary.Read(bytes.NewBuffer(data[index+1:index+3]), binary.BigEndian, &v.Offset)
+		index += 3
+	}
+	return index
+}
+
+type StackMapFrame struct {
+	FrameType          uint8
+	OffsetDelta        uint16
+	Stacks             []VerificationTypeInfo
+	NumberOfLocals     uint16
+	NumberOfStackItems uint16
+	Locals             []VerificationTypeInfo
+}
+
+func (s *StackMapFrame) parse(data []byte, index int) int {
+	binary.Read(bytes.NewBuffer(data[index:index+1]), binary.BigEndian, &s.FrameType)
+	index += 1
+	if s.FrameType >= 64 && s.FrameType <= 127 {
+		info := &VerificationTypeInfo{}
+		index = info.parse(data, index)
+		s.Stacks = append(s.Stacks, *info)
+	} else if s.FrameType == 247 {
+		binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &s.OffsetDelta)
+		index += 2
+		info := &VerificationTypeInfo{}
+		index = info.parse(data, index)
+		s.Stacks = append(s.Stacks, *info)
+	} else if s.FrameType >= 248 && s.FrameType <= 251 {
+		binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &s.OffsetDelta)
+		index += 2
+	} else if s.FrameType >= 252 && s.FrameType <= 254 {
+		binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &s.OffsetDelta)
+		index += 2
+		len := s.FrameType - 251
+		for i := 0; i < int(len); i++ {
+			info := &VerificationTypeInfo{}
+			index = info.parse(data, index)
+			s.Locals = append(s.Locals, *info)
+		}
+	} else if s.FrameType == 255 {
+		binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &s.OffsetDelta)
+		binary.Read(bytes.NewBuffer(data[index+2:index+4]), binary.BigEndian, &s.NumberOfLocals)
+		index += 4
+		for i := 0; i < int(s.NumberOfLocals); i++ {
+			info := &VerificationTypeInfo{}
+			index = info.parse(data, index)
+			s.Stacks = append(s.Stacks, *info)
+		}
+		binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &s.NumberOfStackItems)
+		index += 2
+		for i := 0; i < int(s.NumberOfStackItems); i++ {
+			info := &VerificationTypeInfo{}
+			index = info.parse(data, index)
+			s.Locals = append(s.Locals, *info)
+		}
+	}
+	return index
+}
+
 type StackMapTable struct {
 	AttributeBase
 	NumberOfEntries uint16
+	Entries         []StackMapFrame
 }
 
 func (s *StackMapTable) parse(base *AttributeBase, data []byte, constantPool []ConstantPoolInfo) {
 	s.AttributeBase = *base
 	binary.Read(bytes.NewBuffer(data[0:2]), binary.BigEndian, &s.NumberOfEntries)
+	index := 2
+	for i := 0; i < int(s.NumberOfEntries); i++ {
+		frame := &StackMapFrame{}
+		index = frame.parse(data, index)
+		s.Entries = append(s.Entries, *frame)
+	}
 }
 
 func (s *StackMapTable) String(constantPool []ConstantPoolInfo) string {
