@@ -149,7 +149,7 @@ type ExceptionTable struct {
 	CatchType uint16
 }
 
-func (e *ExceptionTable) Parse(data []byte, index int) {
+func (e *ExceptionTable) parse(data []byte, index int) {
 	binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &e.StartPc)
 	binary.Read(bytes.NewBuffer(data[index+2:index+4]), binary.BigEndian, &e.EndPc)
 	binary.Read(bytes.NewBuffer(data[index+4:index+6]), binary.BigEndian, &e.HandlerPc)
@@ -179,7 +179,7 @@ func (c *Code) parse(base *AttributeBase, data []byte, constantPool []ConstantPo
 	index += 2
 	for i := 0; i < int(c.ExceptionTableLength); i++ {
 		table := &ExceptionTable{}
-		table.Parse(data, index)
+		table.parse(data, index)
 		index += 8
 		c.Table = append(c.Table, *table)
 	}
@@ -433,7 +433,7 @@ type LineNumber struct {
 	LineNumber uint16
 }
 
-func (l *LineNumber) Parse(data []byte, index int) {
+func (l *LineNumber) parse(data []byte, index int) {
 	binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &l.StartPc)
 	binary.Read(bytes.NewBuffer(data[index+2:index+4]), binary.BigEndian, &l.LineNumber)
 }
@@ -450,7 +450,7 @@ func (l *LineNumberTable) parse(base *AttributeBase, data []byte, constantPool [
 	index := 2
 	for i := 0; i < int(l.LineNumberTableLength); i++ {
 		line := &LineNumber{}
-		line.Parse(data, index)
+		line.parse(data, index)
 		index += 4
 		l.LineNumber = append(l.LineNumber, *line)
 	}
@@ -473,7 +473,7 @@ type LocalVariable struct {
 	Index           uint16
 }
 
-func (l *LocalVariable) Parse(data []byte, index int) {
+func (l *LocalVariable) parse(data []byte, index int) {
 	binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &l.StartPc)
 	binary.Read(bytes.NewBuffer(data[index+2:index+4]), binary.BigEndian, &l.Length)
 	binary.Read(bytes.NewBuffer(data[index+4:index+6]), binary.BigEndian, &l.NameIndex)
@@ -493,7 +493,7 @@ func (l *LocalVariableTable) parse(base *AttributeBase, data []byte, constantPoo
 	index := 2
 	for i := 0; i < int(l.LocalVariableTableLength); i++ {
 		localVar := &LocalVariable{}
-		localVar.Parse(data, index)
+		localVar.parse(data, index)
 		index += 10
 		l.LocalVariable = append(l.LocalVariable, *localVar)
 	}
@@ -516,7 +516,7 @@ type LocalVariableType struct {
 	Index          uint16
 }
 
-func (l *LocalVariableType) Parse(data []byte, index int) {
+func (l *LocalVariableType) parse(data []byte, index int) {
 	binary.Read(bytes.NewBuffer(data[index:index+2]), binary.BigEndian, &l.StartPc)
 	binary.Read(bytes.NewBuffer(data[index+2:index+4]), binary.BigEndian, &l.Length)
 	binary.Read(bytes.NewBuffer(data[index+4:index+6]), binary.BigEndian, &l.NameIndex)
@@ -536,7 +536,7 @@ func (l *LocalVariableTypeTable) parse(base *AttributeBase, data []byte, constan
 	index := 2
 	for i := 0; i < int(l.LocalVariableTypeTableLength); i++ {
 		localVar := &LocalVariableType{}
-		localVar.Parse(data, index)
+		localVar.parse(data, index)
 		index += 10
 		l.LocalVariableType = append(l.LocalVariableType, *localVar)
 	}

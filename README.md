@@ -1,6 +1,9 @@
 # class-file-parser
 Java class文件解析器
 
+### Build
+```shell go run main.go -file fileName.class```
+
 ### Class文件格式
 | 类型 | 名称 | 数量 |
 |:---|:---|:---|
